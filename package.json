@@ -1,0 +1,11 @@
+{
+  "name": "nodeVBulletinAPI",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {},
+  "dependencies": {
+    "js-md5": "^0.7.2",
+    "request": "^2.83.0",
+    "underscore": "^1.8.3"
+  }
+}

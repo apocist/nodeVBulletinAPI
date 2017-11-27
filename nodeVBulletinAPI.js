@@ -460,6 +460,7 @@ exports.closeThread = function(threadid, callback) {
 	let params = {};
 	let cookies = {};
 	if(threadid) {
+		//TODO multiple ids are delimited with a '-'. eg: 123-345-456
 		cookies.vbulletin_inlinethread = threadid;
 		//params.imodcheck = [];
 		//params.vbulletin_inlinethread = threadid;

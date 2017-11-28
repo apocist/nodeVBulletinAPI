@@ -30,44 +30,46 @@ exports.user_session_vars = {
 	logged_in: false
 };
 
-
-exports.call_method = function(method, data, cookies, callback) {
+/**
+ *
+ * @param {Object} options
+ * @param {string} options.method
+ * @param {Object} options.params
+ * @param {Object} options.cookies
+ * @param {Function<Object>} callback - Returns a Object to be parse elsewhere
+ */
+exports.call_method = function(options, callback) {
 	let that = this;
 	let sign = true;
-	if(method === 'api_init'){
-		sign = false;
+	options = options || {};
+	options.params = options.params || {};
+	if(!options.method){
+		console.error('call_method(): requires a supplied method');
+		if(callback) callback({});
 	}
-	if(!data) {
-		data = {};
-	}
+	
+	// Sign all calls except for api_init
+	if(options.method === 'api_init') sign = false;
 	
 	let reqParams = {
-		api_m: method
-	};
-	
-	_.extend(reqParams, data); // Combine the arrays
-	
-	if(sign === true) {
-		if(that.client_session_vars.INITED) {
-			//reqParams = utility.ksort(reqParams); // Sort the keys
-			
-			//var api_signature = utility.http_build_query(reqParams, '', '&'); //Note that we only encode the GET variables, all POSTs can skipp this
-			//reqParams.api_sig = md5(api_signature + that.client_session_vars.apiaccesstoken + that.client_session_vars.apiclientid + that.client_session_vars.secret + that.default_vars.apiKey);
-			reqParams.api_sig = md5(that.client_session_vars.apiaccesstoken + that.client_session_vars.apiclientid + that.client_session_vars.secret + that.default_vars.apiKey);
-		} else {
-			console.log('Error: no session variables to sign. Need to initialize.');
-		}
-	}
-	_.extend(reqParams, {
+		api_m: options.method,
 		api_c: that.client_session_vars.apiclientid, //clientId
 		api_s: that.client_session_vars.apiaccesstoken, //apiAccessToken (may be empty)
 		api_v: that.client_session_vars.apiversion //api version
-	});
+	};
+	_.extend(reqParams, options.params); // Combine the arrays
 	
-	console.log('Sending:');
-	console.log(reqParams);
+	if(sign === true) {
+		// Generate a signature to validate that we are authenticated
+		if(that.client_session_vars.INITED) {
+			reqParams.api_sig = md5(that.client_session_vars.apiaccesstoken + that.client_session_vars.apiclientid + that.client_session_vars.secret + that.default_vars.apiKey);
+		} else {
+			console.error('call_method(): no session variables to sign. Need to initialize via api_init().');
+			if(callback) callback({});
+		}
+	}
 	
-	let options = {
+	let reqOptions = {
 		url: that.default_vars.apiUrl,
 		formData: reqParams,
 		headers: {
@@ -75,82 +77,74 @@ exports.call_method = function(method, data, cookies, callback) {
 		}
 	};
 	
-	if(cookies) {
-		
-		//test adding a cookie
+	// Some command require adding a cookie, we'll do that here
+	if(options.cookies) {
 		let j = request.jar();
-		for (let variable in cookies) {
-			if(cookies.hasOwnProperty(variable)) {
-				let cookieString = variable + '=' + cookies[variable];
+		for (let variable in options.cookies) {
+			if(options.cookies.hasOwnProperty(variable)) {
+				let cookieString = variable + '=' + options.cookies[variable];
 				let cookie = request.cookie(cookieString);
 				j.setCookie(cookie, that.default_vars.baseUrl);
-				
-				console.log('setting cookie: `'+cookieString+'` for '+ that.default_vars.baseUrl);
 			}
 		}
-		
-		
-		options.jar = j;//adds cookies to request
+		reqOptions.jar = j;// Adds cookies to the request
 	}
 	
+	//console.log(reqOptions);
+	
 	request.post(
-		options,
+		reqOptions,
 		function (error, response, body) {
 			if (!error && response.statusCode === 200) {
-				//console.log('Got Response');
-				
-				if(callback){
-					callback(JSON.parse(body));
-				}
+				if(callback) callback(JSON.parse(body))
 			} else {
-				//console.log(response.request);
-				console.log('No response');
-				if(callback){
-					callback({});
-				}
+				//console.log('No response');
+				if(callback) callback({})
 			}
 		}
 	);
 };
 
-exports.api_init = function(config, callback) {
+/**
+ * Initialize a vb api connection .This needs to be called for the first time
+ * @param {Object} options
+ * @param {string} options.baseUrl
+ * @param {string} options.apiUrl
+ * @param {string} options.apiKey
+ * @param {string} options.platformversion
+ * @param {Function<boolean>} callback - success
+ */
+exports.api_init = function(options, callback) {
 	let that = this;
-	
+	options = options || {};
 	if(
-		!config.hasOwnProperty('baseUrl')
-		|| !config.hasOwnProperty('apiUrl')
-		|| !config.hasOwnProperty('apiKey')
-		|| !config.hasOwnProperty('platformversion')
-		|| !config.hasOwnProperty('platformversion')
+		!options.hasOwnProperty('baseUrl')
+		|| !options.hasOwnProperty('apiUrl')
+		|| !options.hasOwnProperty('apiKey')
+		|| !options.hasOwnProperty('platformversion')
+		|| !options.hasOwnProperty('platformversion')
 	){
-		console.error('Initalization requires a `baseUrl`, `apiUrl`, `apiKey`, `platformname`, and `platformversion`');
-		return;
+		console.error('api_init(): Initalization requires a `baseUrl`, `apiUrl`, `apiKey`, `platformname`, and `platformversion`');
+		if(callback) callback(false);
 	}
-	if(!this.default_vars.baseUrl) {
-		this.default_vars.baseUrl = config.baseUrl;
-	}
-	if(!this.default_vars.apiUrl) {
-		this.default_vars.apiUrl = config.apiUrl;
-	}
-	if(!this.default_vars.apiKey) {
-		this.default_vars.apiKey = config.apiKey;
-	}
-	if(!this.default_vars.uniqueid) {
-		this.default_vars.uniqueid = md5(this.default_vars.clientname + this.default_vars.clientversion + config.platformname + config.platformversion + this.getMacAddress());
-	}
-	this.call_method(
-		'api_init',
+	that.default_vars.baseUrl = that.default_vars.baseUrl || options.baseUrl;
+	that.default_vars.apiUrl = that.default_vars.apiUrl || options.apiUrl;
+	that.default_vars.apiKey = that.default_vars.apiKey || options.apiKey;
+	that.default_vars.uniqueid = that.default_vars.uniqueid || md5(that.default_vars.clientname + that.default_vars.clientversion + options.platformname + options.platformversion + that.getMacAddress());
+
+	that.call_method(
 		{
-			clientname: this.default_vars.clientname,
-			clientversion: this.default_vars.clientversion,
-			platformname: config.platformname,
-			platformversion: config.platformversion,
-			uniqueid: this.default_vars.uniqueid
+			method: 'api_init',
+			params: {
+				clientname: that.default_vars.clientname,
+				clientversion: that.default_vars.clientversion,
+				platformname: options.platformname,
+				platformversion: options.platformversion,
+				uniqueid: that.default_vars.uniqueid
+			}
 		},
-		null,
 		function(response) {
 			if(response){
-				//console.log(response);
 				that.client_session_vars.apiversion = '';
 				that.client_session_vars.apiaccesstoken = '';
 				that.client_session_vars.sessionhash = '';
@@ -170,19 +164,19 @@ exports.api_init = function(config, callback) {
 					that.client_session_vars.apiclientid = response.apiclientid;
 					that.client_session_vars.secret = response.secret;
 					that.client_session_vars.INITED = true;
-					if(callback){
-						callback(true);
-					}
+					if(callback) callback(true);
 				} else {
-					if(callback){
-						callback(false);
-					}
+					if(callback) callback(false);
 				}
 			}
 		}
 	);
 };
 
+/**
+ * Return a Mac address of a network interface for machine identification
+ * @returns {string} macAddress
+ */
 exports.getMacAddress = function() {
 	let interfaces = os.networkInterfaces();
 	let address;
@@ -209,7 +203,12 @@ exports.getMacAddress = function() {
 	return address;
 };
 
-exports.getErrorMessage = function(response) {
+/**
+ *
+ * @param {Object} response
+ * @returns {string} status - message
+ */
+exports.parseErrorMessage = function(response) {
 	if(
 		response.hasOwnProperty('response')
 		&& response.response.hasOwnProperty('errormessage')
@@ -222,29 +221,39 @@ exports.getErrorMessage = function(response) {
 
 /**
  * Attempts to log in a user.
- * @param username
- * @param pass
- * @param callback(status, that.user_session_vars)
+ * @param {Object} options
+ * @param {string} options.username - username
+ * @param {string} options.password - clear text password
+ * @param {Function} callback
+ * @param {string} callback.status - (redirect_login/badlogin/badlogin_strikes)
+ * @param {Object} callback.user_session_vars
  */
-exports.login = function(username, pass, callback) {
-	this.loginMD5(username, md5(pass), callback);
+exports.login = function(options, callback) {
+	options = options || {};
+	options.password = md5(options.password || '');
+	this.loginMD5(options, callback);
 };
 
 /**
  * Attempts to log in a user. Requires the password to be pre md5 hashed.
- * @param username
- * @param md5pass TODO need to secure this more
- * @param callback(status, that.user_session_vars)
+ * @param {Object} options
+ * @param {string} options.username - username
+ * @param {string} options.password - md5 hashed password TODO need to secure this more
+ * @param {Function} callback
+ * @param {string} callback.status - (redirect_login/badlogin/badlogin_strikes)
+ * @param {Object} callback.user_session_vars
  */
-exports.loginMD5 = function(username, md5pass, callback) {
+exports.loginMD5 = function(options, callback) {
 	let that = this;
-	this.call_method(
-		'login_login',
+	options = options || {};
+	that.call_method(
 		{
-			vb_login_username: username,
-			vb_login_md5password: md5pass
+			method: 'login_login',
+			params: {
+				vb_login_username: options.username || '',
+				vb_login_md5password: options.password || ''
+			}
 		},
-		null,
 		function(response) {
 			if(response){
 				let status;
@@ -253,36 +262,39 @@ exports.loginMD5 = function(username, md5pass, callback) {
 				badlogin - Username or Password incorrect. Login failed.
 				badlogin_strikes - Username or Password incorrect. Login failed. You have used {X} out of 5 login attempts. After all 5 have been used, you will be unable to login for 15 minutes.
 				*/
-				status = that.getErrorMessage(response);
+				status = that.parseErrorMessage(response);
 				if(response.session){
 					that.user_session_vars = response.session;
 					if(status === 'redirect_login') {
-						that.user_session_vars.username = username;
+						that.user_session_vars.username = options.username;
 						that.user_session_vars.logged_in = true;
 					}
 				}
 				if(callback){
 					callback(status, that.user_session_vars);
 				}
-				//console.log(response);
 			}
 		}
 	);
 };
 
-exports.logout = function(username, md5pass, callback) {
+/**
+ * Attempts to log the user out.
+ * @param {Function<string>} callback - should always return 'cookieclear'
+ */
+exports.logout = function(callback) {
 	let that = this;
-	this.call_method(
-		'login_logout',
-		null,
-		null,
+	that.call_method(
+		{
+			method: 'login_logout'
+		},
 		function(response) {
 			if(response){
 				let status;
 				/**
 				 'cookieclear' if logout successful
 				 */
-				status = that.getErrorMessage(response);
+				status = that.parseErrorMessage(response);
 				if(response.session){
 					that.user_session_vars = response.session;
 					if(status === 'cookieclear') {
@@ -290,10 +302,7 @@ exports.logout = function(username, md5pass, callback) {
 						that.user_session_vars.logged_in = false;
 					}
 				}
-				if(callback){
-					callback(status, that.user_session_vars);
-				}
-				//console.log(response);
+				if(callback)callback(status, that.user_session_vars);
 			}
 		}
 	);
@@ -301,13 +310,13 @@ exports.logout = function(username, md5pass, callback) {
 
 /**
  * List every Forum and sub forum available to the user.
- * @param callback([Forum])
+ * @param {Function<Forum[]>} callback - Array of Forum objects
  */
 exports.getForums = function(callback) {
 	this.call_method(
-		'api_forumlist',
-		null,
-		null,
+		{
+			method: 'api_forumlist'
+		},
 		function(response) {
 			if(response){
 				if(callback){
@@ -324,41 +333,22 @@ exports.getForums = function(callback) {
 	);
 };
 
-exports.getForum = function(forumid, callback) {
-	let params = {};
-	if(forumid) {
-		params.forumid = forumid;
-	}
-	this.call_method(
-		'forumdisplay',
-		params,
-		null,
-		function(response) {
-			if(response
-				&& response.response
-			){
-				if(callback){
-					callback(new Forum(response.response));
-				}
-			}
-		}
-	);
-};
 
 /**
- *
- * @param forumid
- * @param callback(Forum)
+ * List detailed info about a forum and it's subforums and threads
+ * @param {Object} options
+ * @param {number} options.forumid - forumid
+ * TODO note additional options
+ * @param {Function<Forum>} callback - Returns a Forum object
  */
-exports.getForum = function(forumid, callback) {
-	let params = {};
-	if(forumid) {
-		params.forumid = forumid;
-	}
+exports.getForum = function(options, callback) {
+	options = options || {};
+	options.forumid = options.forumid || ''; //required
 	this.call_method(
-		'forumdisplay',
-		params,
-		null,
+		{
+			method: 'forumdisplay',
+			params: options
+		},
 		function(response) {
 			if(
 				response
@@ -373,115 +363,109 @@ exports.getForum = function(forumid, callback) {
 };
 
 /**
- *
- * @param threadid
- * @param callback(Thread)
+ * List detailed information about a Thread and it's Posts
+ * @param {Object} options
+ * @param {number} options.threadid - threadid
+ * TODO note additional options
+ * @param {Function<Thread>} callback - Returns a Thread object
  */
-exports.getThread = function(threadid, callback) {
-	let params = {};
-	if(threadid) {
-		params.threadid = threadid;
-	}
+exports.getThread = function(options, callback) {
+	options = options || {};
+	options.threadid = options.threadid || ''; //required
 	this.call_method(
-		'showthread',
-		params,
-		null,
+		{
+			method: 'showthread',
+			params: options
+		},
 		function(response) {
 			if(
 				response
 				&& response.response
 			){
-				if(callback){
-					callback(new Thread(response.response));
-				}
+				if(callback) callback(new Thread(response.response));
 			}
 		}
 	);
 };
 
-exports.newPost = function(threadid, message, options, callback) {
-	let params = {};
-	if(threadid) {
-		params.threadid = threadid;
-	}
-	if(message) {
-		params.message = message;
-	}
-	if (options){
-		_.extend(params, options);
-	}
+/**
+ * Attempts to submit a new Post into a specified Thread
+ * @param {Object} options
+ * @param {number} options.threadid - threadid
+ * @param {string} options.message - message
+ * TODO note additional options
+ * @param {Function<Object>} callback - Returns a unhandled response currently
+ */
+exports.newPost = function(options, callback) {
+	options = options || {};
+	options.threadid = options.threadid || ''; //required
+	options.message = options.message || ''; //required
 	this.call_method(
-		'newreply_postreply',
-		params,
-		null,
+		{
+			method: 'newreply_postreply',
+			params: options
+		},
 		function(response) {
 			if(response){
 				//success is errormessgae 'redirect_postthanks'
 				//reports threadid and postid
-				if(callback){
-					callback(response);
-				}
+				if(callback) callback(response);
 			}
 		}
 	);
 };
 
-exports.newThread = function(forumid, subject, message, options, callback) {
-	let params = {};
-	if(forumid) {
-		params.forumid = forumid;
-	}
-	if(subject) {
-		params.subject = subject;
-	}
-	if(message) {
-		params.message = message;
-	}
-	if (options){
-		_.extend(params, options);
-	}
+/**
+ * Attempts to submit a new Thread into a specified Forum
+ * @param {Object} options
+ * @param {number} options.forumid - forumid
+ * @param {string} options.subject - subject
+ * @param {string} options.message - message
+ * TODO note additional options
+ * @param {Function<Object>} callback - Returns a unhandled response currently
+ */
+exports.newThread = function(options, callback) {
+	options = options || {};
+	options.forumid = options.forumid || ''; //required
+	options.subject = options.subject || ''; //required
+	options.message = options.message || ''; //required
 	this.call_method(
-		'newthread_postthread',
-		params,
-		null,
+		{
+			method: 'newthread_postthread',
+			params: options
+		},
 		function(response) {
 			if(response){
 				//success is errormessgae 'redirect_postthanks'
 				//reports threadid and postid
-				if(callback){
-					callback(response);
-				}
+				if(callback) callback(response);
 			}
 		}
 	);
 };
 
+/**
+ * Attempts to close a specific Thread. Requires a user to have a 'inline mod' permissions
+ * @param {number} threadid
+ * TODO note additional options
+ * @param {Function<Object>} callback - Returns a unhandled response currently
+ */
 exports.closeThread = function(threadid, callback) {
 	let params = {};
 	let cookies = {};
 	if(threadid) {
 		//TODO multiple ids are delimited with a '-'. eg: 123-345-456
 		cookies.vbulletin_inlinethread = threadid;
-		//params.imodcheck = [];
-		//params.vbulletin_inlinethread = threadid;
-		//params.imodcheck[threadid] = 1;
-		//params.imodcheck = threadid
-		//params['tlist_imodcheck['+threadid+']'] = threadid;
-		/*let imodcheck = [];
-		imodcheck[threadid] = 1;
-		params.tlist = [];
-		params.tlist.push(imodcheck);*/
 	}
 	this.call_method(
-		'inlinemod_close',
-		params,
-		cookies,
+		{
+			method: 'inlinemod_close',
+			cookies: cookies || {}
+		},
 		function(response) {
 			if(response){
 				//redirect_inline_closed on success
-				if(callback){
-					callback(response);
-				}
+				if(callback) callback(response);
 			}
 		}
 	);

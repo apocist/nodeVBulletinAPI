@@ -10,7 +10,7 @@ const config = {
 	
 const user_config = {
 	username: 'username',
-	pass: 'password' //login() uses cleartext while loginMD5() uses md5 hashed password
+	password: 'password' //login() uses cleartext while loginMD5() uses md5 hashed password
 };
 
 
@@ -22,8 +22,7 @@ vbApi.api_init(
 		if (status) {
 			
 			vbApi.login(
-				user_config.username,
-				user_config.pass,
+				user_config,
 				function(status, data){
 					console.log(status);
 					if(status === 'redirect_login'){ //if connected
@@ -36,16 +35,20 @@ vbApi.api_init(
 						);
 						
 						vbApi.getForum(
-							565,
+							{
+								forumid: 565
+							},
 							function (data) {
 								console.log('got forum:');
-								//console.log(data);
-								console.log(data.threads[0]);
+								console.log(data);
+								//console.log(data.threads[0]);
 							}
 						);
 						
 						vbApi.getThread(
-							41257,
+							{
+								threadid: 41257
+							},
 							function (data) {
 								console.log('got thread:');
 								console.log(data);
@@ -53,9 +56,10 @@ vbApi.api_init(
 						);
 						
 						vbApi.newPost(
-							41257,
-							'Wiggle new testings~!',
-							null,
+							{
+								threadid: 41257,
+								message: 'Wiggle new testings~!'
+							},
 							function (data) {
 								console.log('posted post:');
 								console.log(data);
@@ -63,10 +67,11 @@ vbApi.api_init(
 						);
 						
 						vbApi.newThread(
-							565,
-							'new Thread test',
-							'Just testing again!',
-							null,
+							{
+								forumid: 565,
+								subject: 'new Thread test',
+								message: 'Just testing again!'
+							},
 							function (data) {
 								console.log('posted thread:');
 								console.log(data);
@@ -74,7 +79,7 @@ vbApi.api_init(
 						);
 						
 						vbApi.closeThread(
-							'41257',
+							41257,
 							function (data) {
 								console.log('closed thread:');
 								console.log(data);

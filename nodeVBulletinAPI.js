@@ -36,7 +36,9 @@ exports.user_session_vars = {
  * @param {string} options.method
  * @param {Object} options.params
  * @param {Object} options.cookies
- * @param {Function<Object>} callback - Returns a Object to be parse elsewhere
+ * @param {Function} callback - Returns a Object to be parse elsewhere
+ * @param {string} callback.error
+ * @param {Object} callback.data - Returns a Object to be parse elsewhere
  */
 exports.call_method = function(options, callback) {
 	let that = this;
@@ -44,8 +46,8 @@ exports.call_method = function(options, callback) {
 	options = options || {};
 	options.params = options.params || {};
 	if(!options.method){
-		console.error('call_method(): requires a supplied method');
-		if(callback) callback({});
+		if(callback) callback('call_method(): requires a supplied method');
+		return;
 	}
 	
 	// Sign all calls except for api_init
@@ -64,8 +66,8 @@ exports.call_method = function(options, callback) {
 		if(that.client_session_vars.INITED) {
 			reqParams.api_sig = md5(that.client_session_vars.apiaccesstoken + that.client_session_vars.apiclientid + that.client_session_vars.secret + that.default_vars.apiKey);
 		} else {
-			console.error('call_method(): no session variables to sign. Need to initialize via api_init().');
-			if(callback) callback({});
+			if(callback) callback('call_method(): no session variables to sign. Need to initialize via api_init().');
+			return;
 		}
 	}
 	
@@ -90,16 +92,14 @@ exports.call_method = function(options, callback) {
 		reqOptions.jar = j;// Adds cookies to the request
 	}
 	
-	//console.log(reqOptions);
-	
 	request.post(
 		reqOptions,
 		function (error, response, body) {
 			if (!error && response.statusCode === 200) {
-				if(callback) callback(JSON.parse(body))
+				if(callback) callback(null, JSON.parse(body))
 			} else {
 				//console.log('No response');
-				if(callback) callback({})
+				if(callback) callback('call_method(): no response.')
 			}
 		}
 	);
@@ -112,22 +112,26 @@ exports.call_method = function(options, callback) {
  * @param {string} options.apiUrl
  * @param {string} options.apiKey
  * @param {string} options.platformversion
- * @param {Function<boolean>} callback - success
+ * @param {Function} callback
+ * @param {string} callback.error
+ * @param {Object} callback.success
  */
 exports.api_init = function(options, callback) {
 	let that = this;
 	options = options || {};
 	if(
-		!options.hasOwnProperty('baseUrl')
-		|| !options.hasOwnProperty('apiUrl')
+		!options.hasOwnProperty('apiUrl')
 		|| !options.hasOwnProperty('apiKey')
 		|| !options.hasOwnProperty('platformversion')
 		|| !options.hasOwnProperty('platformversion')
 	){
-		console.error('api_init(): Initalization requires a `baseUrl`, `apiUrl`, `apiKey`, `platformname`, and `platformversion`');
-		if(callback) callback(false);
+		console.error('api_init(): Initalization requires a `apiUrl`, `apiKey`, `platformname`, and `platformversion`');
+		if(callback) callback('TODO ERROR');
 	}
-	that.default_vars.baseUrl = that.default_vars.baseUrl || options.baseUrl;
+	
+	let regex_url = /^(?:([A-Za-z]+):)?(\/{0,3})([0-9.\-A-Za-z]+)(?::(\d+))?(?:\/([^?#]*))?(?:\?([^#]*))?(?:#(.*))?$/;
+	let url_parts = regex_url.exec( options.apiUrl );
+	that.default_vars.baseUrl = that.default_vars.baseUrl || url_parts[1]+':'+url_parts[2]+url_parts[3]+'/';
 	that.default_vars.apiUrl = that.default_vars.apiUrl || options.apiUrl;
 	that.default_vars.apiKey = that.default_vars.apiKey || options.apiKey;
 	that.default_vars.uniqueid = that.default_vars.uniqueid || md5(that.default_vars.clientname + that.default_vars.clientversion + options.platformname + options.platformversion + that.getMacAddress());
@@ -143,7 +147,7 @@ exports.api_init = function(options, callback) {
 				uniqueid: that.default_vars.uniqueid
 			}
 		},
-		function(response) {
+		function(error, response) {
 			if(response){
 				that.client_session_vars.apiversion = '';
 				that.client_session_vars.apiaccesstoken = '';
@@ -164,9 +168,9 @@ exports.api_init = function(options, callback) {
 					that.client_session_vars.apiclientid = response.apiclientid;
 					that.client_session_vars.secret = response.secret;
 					that.client_session_vars.INITED = true;
-					if(callback) callback(true);
+					if(callback) callback(null, true);
 				} else {
-					if(callback) callback(false);
+					if(callback) callback('TODO ERROR');
 				}
 			}
 		}
@@ -225,8 +229,8 @@ exports.parseErrorMessage = function(response) {
  * @param {string} options.username - username
  * @param {string} options.password - clear text password
  * @param {Function} callback
- * @param {string} callback.status - (redirect_login/badlogin/badlogin_strikes)
- * @param {Object} callback.user_session_vars
+ * @param {string} callback.error - (badlogin/badlogin_strikes)
+ * @param {Object} callback.data
  */
 exports.login = function(options, callback) {
 	options = options || {};
@@ -240,8 +244,8 @@ exports.login = function(options, callback) {
  * @param {string} options.username - username
  * @param {string} options.password - md5 hashed password TODO need to secure this more
  * @param {Function} callback
- * @param {string} callback.status - (redirect_login/badlogin/badlogin_strikes)
- * @param {Object} callback.user_session_vars
+ * @param {string} callback.error - badlogin/badlogin_strikes
+ * @param {Object} callback.data
  */
 exports.loginMD5 = function(options, callback) {
 	let that = this;
@@ -254,25 +258,25 @@ exports.loginMD5 = function(options, callback) {
 				vb_login_md5password: options.password || ''
 			}
 		},
-		function(response) {
+		function(error, response) {
 			if(response){
-				let status;
 				/**
 				redirect_login - (NOT A ERROR) Login successful
 				badlogin - Username or Password incorrect. Login failed.
 				badlogin_strikes - Username or Password incorrect. Login failed. You have used {X} out of 5 login attempts. After all 5 have been used, you will be unable to login for 15 minutes.
 				*/
-				status = that.parseErrorMessage(response);
+				error = that.parseErrorMessage(response);
 				if(response.session){
 					that.user_session_vars = response.session;
-					if(status === 'redirect_login') {
+					if(error === 'redirect_login') {
 						that.user_session_vars.username = options.username;
 						that.user_session_vars.logged_in = true;
 					}
 				}
-				if(callback){
-					callback(status, that.user_session_vars);
+				if(error === 'redirect_login') {
+					error = null;
 				}
+				if(callback) callback(error, that.user_session_vars);
 			}
 		}
 	);
@@ -280,7 +284,9 @@ exports.loginMD5 = function(options, callback) {
 
 /**
  * Attempts to log the user out.
- * @param {Function<string>} callback - should always return 'cookieclear'
+ * @param {Function} callback
+ * @param {string} callback.error
+ * @param {Object} callback.user_session_vars
  */
 exports.logout = function(callback) {
 	let that = this;
@@ -288,21 +294,20 @@ exports.logout = function(callback) {
 		{
 			method: 'login_logout'
 		},
-		function(response) {
+		function(error, response) {
 			if(response){
-				let status;
-				/**
-				 'cookieclear' if logout successful
-				 */
-				status = that.parseErrorMessage(response);
+				error = that.parseErrorMessage(response);
 				if(response.session){
 					that.user_session_vars = response.session;
-					if(status === 'cookieclear') {
+					if(error === 'cookieclear') {
 						that.user_session_vars.username = '';
 						that.user_session_vars.logged_in = false;
 					}
 				}
-				if(callback)callback(status, that.user_session_vars);
+				if(error === 'cookieclear') {
+					error = null;
+				}
+				if(callback)callback(error, that.user_session_vars);
 			}
 		}
 	);
@@ -310,14 +315,16 @@ exports.logout = function(callback) {
 
 /**
  * List every Forum and sub forum available to the user.
- * @param {Function<Forum[]>} callback - Array of Forum objects
+ * @param {Function} callback
+ * @param {string} callback.error
+ * @param {Forum[]} callback.data - Array of Forum objects
  */
 exports.getForums = function(callback) {
 	this.call_method(
 		{
 			method: 'api_forumlist'
 		},
-		function(response) {
+		function(error, response) {
 			if(response){
 				if(callback){
 					let forums = [];
@@ -326,7 +333,7 @@ exports.getForums = function(callback) {
 							forums.push(new Forum(response[forum]));
 						}
 					}
-					callback(forums);
+					callback(null, forums);//TODO need to handle errors
 				}
 			}
 		}
@@ -339,7 +346,9 @@ exports.getForums = function(callback) {
  * @param {Object} options
  * @param {number} options.forumid - forumid
  * TODO note additional options
- * @param {Function<Forum>} callback - Returns a Forum object
+ * @param {Function} callback
+ * @param {string} callback.error
+ * @param {Forum} callback.data - Returns a Forum object
  */
 exports.getForum = function(options, callback) {
 	options = options || {};
@@ -349,13 +358,13 @@ exports.getForum = function(options, callback) {
 			method: 'forumdisplay',
 			params: options
 		},
-		function(response) {
+		function(error, response) {
 			if(
 				response
 				&& response.response
 			){
 				if(callback){
-					callback(new Forum(response.response));
+					callback(null, new Forum(response.response));// TODO need to handle errors
 				}
 			}
 		}
@@ -367,7 +376,9 @@ exports.getForum = function(options, callback) {
  * @param {Object} options
  * @param {number} options.threadid - threadid
  * TODO note additional options
- * @param {Function<Thread>} callback - Returns a Thread object
+ * @param {Function} callback
+ * @param {string} callback.error
+ * @param {Thread} callback.data - Returns a Thread object
  */
 exports.getThread = function(options, callback) {
 	options = options || {};
@@ -377,12 +388,12 @@ exports.getThread = function(options, callback) {
 			method: 'showthread',
 			params: options
 		},
-		function(response) {
+		function(error, response) {
 			if(
 				response
 				&& response.response
 			){
-				if(callback) callback(new Thread(response.response));
+				if(callback) callback(null, new Thread(response.response));// TODO need to handle errors
 			}
 		}
 	);
@@ -394,7 +405,9 @@ exports.getThread = function(options, callback) {
  * @param {number} options.threadid - threadid
  * @param {string} options.message - message
  * TODO note additional options
- * @param {Function<Object>} callback - Returns a unhandled response currently
+ * @param {Function} callback
+ * @param {string} callback.error
+ * @param {Object} callback.data - Returns a unhandled response currently
  */
 exports.newPost = function(options, callback) {
 	options = options || {};
@@ -405,11 +418,11 @@ exports.newPost = function(options, callback) {
 			method: 'newreply_postreply',
 			params: options
 		},
-		function(response) {
+		function(error, response) {
 			if(response){
 				//success is errormessgae 'redirect_postthanks'
 				//reports threadid and postid
-				if(callback) callback(response);
+				if(callback) callback(null, response);// TODO handle errors
 			}
 		}
 	);
@@ -422,7 +435,9 @@ exports.newPost = function(options, callback) {
  * @param {string} options.subject - subject
  * @param {string} options.message - message
  * TODO note additional options
- * @param {Function<Object>} callback - Returns a unhandled response currently
+ * @param {Function} callback
+ * @param {string} callback.error
+ * @param {Object} callback.data - Returns a unhandled response currently
  */
 exports.newThread = function(options, callback) {
 	options = options || {};
@@ -434,11 +449,11 @@ exports.newThread = function(options, callback) {
 			method: 'newthread_postthread',
 			params: options
 		},
-		function(response) {
+		function(error, response) {
 			if(response){
 				//success is errormessgae 'redirect_postthanks'
 				//reports threadid and postid
-				if(callback) callback(response);
+				if(callback) callback(null, response);// TODO handle errors
 			}
 		}
 	);
@@ -448,10 +463,11 @@ exports.newThread = function(options, callback) {
  * Attempts to close a specific Thread. Requires a user to have a 'inline mod' permissions
  * @param {number} threadid
  * TODO note additional options
- * @param {Function<Object>} callback - Returns a unhandled response currently
+ * @param {Function} callback
+ * @param {string} callback.error
+ * @param {Object} callback.data - Returns a unhandled response currently
  */
 exports.closeThread = function(threadid, callback) {
-	let params = {};
 	let cookies = {};
 	if(threadid) {
 		//TODO multiple ids are delimited with a '-'. eg: 123-345-456
@@ -462,10 +478,10 @@ exports.closeThread = function(threadid, callback) {
 			method: 'inlinemod_close',
 			cookies: cookies || {}
 		},
-		function(response) {
+		function(error, response) {
 			if(response){
 				//redirect_inline_closed on success
-				if(callback) callback(response);
+				if(callback) callback(null, response);//TODO handle errors
 			}
 		}
 	);

@@ -429,6 +429,61 @@ exports.newPost = function(options, callback) {
 };
 
 /**
+ * TODO untested
+ * Attempts to edit an existing Post
+ * @param {Object} options
+ * @param {number} options.postid - Post id
+ * @param {string} options.message - Post Message
+ * TODO note additional options
+ * @param {Function} callback
+ * @param {string} callback.error
+ * @param {Object} callback.data - Returns a unhandled response currently
+ */
+exports.editPost = function(options, callback) {
+	options = options || {};
+	options.postid = options.postid || ''; //required
+	options.message = options.message || ''; //required
+	this.call_method(
+		{
+			method: 'editpost_updatepos',
+			params: options
+		},
+		function(error, response) {
+			if(response){
+				//success is errormessgae 'redirect_postthanks'
+				if(callback) callback(null, response);// TODO handle errors
+			}
+		}
+	);
+};
+
+/**
+ * TODO untested
+ * Attempts to delete an existing Post
+ * @param {Object} options
+ * @param {number} options.postid - Post id
+ * TODO note additional options
+ * @param {Function} callback
+ * @param {string} callback.error
+ * @param {Object} callback.data - Returns a unhandled response currently
+ */
+exports.deletePost = function(options, callback) {
+	options = options || {};
+	options.postid = options.postid || ''; //required
+	this.call_method(
+		{
+			method: 'editpost_deletepost',
+			params: options
+		},
+		function(error, response) {
+			if(response){
+				if(callback) callback(null, response);// TODO handle errors
+			}
+		}
+	);
+};
+
+/**
  * Attempts to submit a new Thread into a specified Forum
  * @param {Object} options
  * @param {number} options.forumid - Forum Id
@@ -461,13 +516,12 @@ exports.newThread = function(options, callback) {
 
 /**
  * Attempts to close a specific Thread. Requires a user to have a 'inline mod' permissions
- * @param {number} threadid - Thread Id
- * TODO note additional options
+ * @param {number} threadid - Id of Thread to close
  * @param {Function} callback
  * @param {string} callback.error
  * @param {Object} callback.data - Returns a unhandled response currently
  */
-exports.closeThread = function(threadid, callback) {
+exports.modCloseThread = function(threadid, callback) {
 	let cookies = {};
 	if(threadid) {
 		//TODO multiple ids are delimited with a '-'. eg: 123-345-456
@@ -476,6 +530,61 @@ exports.closeThread = function(threadid, callback) {
 	this.call_method(
 		{
 			method: 'inlinemod_close',
+			cookies: cookies || {}
+		},
+		function(error, response) {
+			if(response){
+				//redirect_inline_closed on success
+				if(callback) callback(null, response);//TODO handle errors
+			}
+		}
+	);
+};
+
+/**
+ * Attempts to open a specific Thread. Requires a user to have a 'inline mod' permissions
+ * @param {number} threadid - Id of Thread to open
+ * @param {Function} callback
+ * @param {string} callback.error
+ * @param {Object} callback.data - Returns a unhandled response currently
+ */
+exports.modOpenThread = function(threadid, callback) {
+	let cookies = {};
+	if(threadid) {
+		//TODO multiple ids are delimited with a '-'. eg: 123-345-456
+		cookies.vbulletin_inlinethread = threadid;
+	}
+	this.call_method(
+		{
+			method: 'inlinemod_open',
+			cookies: cookies || {}
+		},
+		function(error, response) {
+			if(response){
+				//redirect_inline_closed on success
+				if(callback) callback(null, response);//TODO handle errors
+			}
+		}
+	);
+};
+
+/**
+ * TODO untested
+ * Attempts to delete a specific Thread. Requires a user to have a 'inline mod' permissions
+ * @param {number} threadid - Id of Thread to delete
+ * @param {Function} callback
+ * @param {string} callback.error
+ * @param {Object} callback.data - Returns a unhandled response currently
+ */
+exports.modDeleteThread = function(threadid, callback) {
+	let cookies = {};
+	if(threadid) {
+		//TODO multiple ids are delimited with a '-'. eg: 123-345-456
+		cookies.vbulletin_inlinethread = threadid;
+	}
+	this.call_method(
+		{
+			method: 'inlinemod_dodeletethreads ',
 			cookies: cookies || {}
 		},
 		function(error, response) {

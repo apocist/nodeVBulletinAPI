@@ -80,7 +80,7 @@ function loginConfirmed(error) {
 			}
 		);
 		
-		vbApi.closeThread(
+		vbApi.modCloseThread(
 			41257,
 			function (error, data) {
 				console.log('closed thread:');

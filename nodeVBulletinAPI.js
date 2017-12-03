@@ -33,9 +33,9 @@ exports.user_session_vars = {
 /**
  *
  * @param {Object} options
- * @param {string} options.method
- * @param {Object} options.params
- * @param {Object} options.cookies
+ * @param {string} options.method - Required action to take
+ * @param {Object<string,string>} [options.params={}] - Optional parameter variables
+ * @param {?Object<string,string>} [options.cookies] - Optional cookie variables
  * @param {Function} callback - Returns a Object to be parse elsewhere
  * @param {string} callback.error
  * @param {Object} callback.data - Returns a Object to be parse elsewhere
@@ -108,13 +108,13 @@ exports.call_method = function(options, callback) {
 /**
  * Initialize a vb api connection .This needs to be called for the first time
  * @param {Object} options
- * @param {string} options.apiUrl
- * @param {string} options.apiKey
- * @param {string} options.platformname
- * @param {string} options.platformversion
+ * @param {string} options.apiUrl - Required API URL location, including protocol
+ * @param {string} options.apiKey - Required API Key for forum to perform any actions
+ * @param {string} options.platformname - Platform Name that is connecting to the API
+ * @param {string} options.platformversion - Platform Version that is connecting to the API
  * @param {Function} callback
- * @param {string} callback.error
- * @param {Object} callback.success
+ * @param {string} callback.error - TODO
+ * @param {boolean} callback.success - Return TRUE on success
  */
 exports.api_init = function(options, callback) {
 	let that = this;
@@ -209,8 +209,8 @@ exports.getMacAddress = function() {
 
 /**
  *
- * @param {Object} response
- * @returns {string} status - message
+ * @param {Object} response - Response object from call_method()
+ * @returns {string} status - Error message
  */
 exports.parseErrorMessage = function(response) {
 	if(
@@ -226,11 +226,11 @@ exports.parseErrorMessage = function(response) {
 /**
  * Attempts to log in a user.
  * @param {Object} options
- * @param {string} options.username - username
- * @param {string} options.password - clear text password
+ * @param {string} options.username - Username
+ * @param {string} options.password - clear text password TODO need to secure this more?
  * @param {Function} callback
- * @param {string} callback.error - (badlogin/badlogin_strikes)
- * @param {Object} callback.data
+ * @param {string} callback.error - badlogin/badlogin_strikes
+ * @param {Object} callback.data - User Session Data
  */
 exports.login = function(options, callback) {
 	options = options || {};
@@ -241,11 +241,11 @@ exports.login = function(options, callback) {
 /**
  * Attempts to log in a user. Requires the password to be pre md5 hashed.
  * @param {Object} options
- * @param {string} options.username - username
- * @param {string} options.password - md5 hashed password TODO need to secure this more
+ * @param {string} options.username - Username
+ * @param {string} options.password - MD5 hashed password TODO need to secure this more?
  * @param {Function} callback
  * @param {string} callback.error - badlogin/badlogin_strikes
- * @param {Object} callback.data
+ * @param {Object} callback.data - User Session Data
  */
 exports.loginMD5 = function(options, callback) {
 	let that = this;
@@ -286,7 +286,7 @@ exports.loginMD5 = function(options, callback) {
  * Attempts to log the user out.
  * @param {Function} callback
  * @param {string} callback.error
- * @param {Object} callback.user_session_vars
+ * @param {Object} callback.data - User Session Data (should be empty)
  */
 exports.logout = function(callback) {
 	let that = this;
@@ -342,9 +342,9 @@ exports.getForums = function(callback) {
 
 
 /**
- * List detailed info about a forum and it's subforums and threads
+ * List detailed info about a forum and it's sub-forums and threads
  * @param {Object} options
- * @param {number} options.forumid - forumid
+ * @param {number} options.forumid - Forum id
  * TODO note additional options
  * @param {Function} callback
  * @param {string} callback.error
@@ -374,7 +374,7 @@ exports.getForum = function(options, callback) {
 /**
  * List detailed information about a Thread and it's Posts
  * @param {Object} options
- * @param {number} options.threadid - threadid
+ * @param {number} options.threadid - Thread id
  * TODO note additional options
  * @param {Function} callback
  * @param {string} callback.error
@@ -402,8 +402,8 @@ exports.getThread = function(options, callback) {
 /**
  * Attempts to submit a new Post into a specified Thread
  * @param {Object} options
- * @param {number} options.threadid - threadid
- * @param {string} options.message - message
+ * @param {number} options.threadid - Thread id
+ * @param {string} options.message - Post Message
  * TODO note additional options
  * @param {Function} callback
  * @param {string} callback.error
@@ -431,9 +431,9 @@ exports.newPost = function(options, callback) {
 /**
  * Attempts to submit a new Thread into a specified Forum
  * @param {Object} options
- * @param {number} options.forumid - forumid
- * @param {string} options.subject - subject
- * @param {string} options.message - message
+ * @param {number} options.forumid - Forum Id
+ * @param {string} options.subject - Post/Thread Subject
+ * @param {string} options.message - Post Message
  * TODO note additional options
  * @param {Function} callback
  * @param {string} callback.error
@@ -461,7 +461,7 @@ exports.newThread = function(options, callback) {
 
 /**
  * Attempts to close a specific Thread. Requires a user to have a 'inline mod' permissions
- * @param {number} threadid
+ * @param {number} threadid - Thread Id
  * TODO note additional options
  * @param {Function} callback
  * @param {string} callback.error

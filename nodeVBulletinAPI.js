@@ -108,7 +108,6 @@ exports.call_method = function(options, callback) {
 /**
  * Initialize a vb api connection .This needs to be called for the first time
  * @param {Object} options
- * @param {string} options.baseUrl
  * @param {string} options.apiUrl
  * @param {string} options.apiKey
  * @param {string} options.platformversion

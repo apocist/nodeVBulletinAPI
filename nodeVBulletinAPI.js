@@ -110,6 +110,7 @@ exports.call_method = function(options, callback) {
  * @param {Object} options
  * @param {string} options.apiUrl
  * @param {string} options.apiKey
+ * @param {string} options.platformname
  * @param {string} options.platformversion
  * @param {Function} callback
  * @param {string} callback.error
@@ -121,7 +122,7 @@ exports.api_init = function(options, callback) {
 	if(
 		!options.hasOwnProperty('apiUrl')
 		|| !options.hasOwnProperty('apiKey')
-		|| !options.hasOwnProperty('platformversion')
+		|| !options.hasOwnProperty('platformname')
 		|| !options.hasOwnProperty('platformversion')
 	){
 		console.error('api_init(): Initalization requires a `apiUrl`, `apiKey`, `platformname`, and `platformversion`');

@@ -26,7 +26,7 @@ vbApi.api_init(
 	}
 );
 
-function loginConfirmed(error, data) {
+function loginConfirmed(error) {
 	if(error === null) {
 		
 		vbApi.getForums(

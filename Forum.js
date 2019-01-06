@@ -1,63 +1,74 @@
 const Thread = require('./Thread');
 
-function Forum(rawdata) {
-	this.rawdata = rawdata;
+/**
+ *
+ * @param {object} rawData
+ * @constructor
+ * @property {number} forumid
+ * @property {string} title
+ * @property {string} description
+ * @property {number} parentid
+ * @property {[Thread]} threads
+ * @property {[Forum]} subforums
+ */
+const Forum = function Forum(rawData) {
+	this.rawData = rawData;
 	this.parseData();
 	this.cleanup();
-}
+};
 
 Forum.prototype.parseData = function() {
-	if(this.rawdata) {
-		//TODO need to speficiy if its fully fetched
-		let rawdata = this.rawdata;
-		if (rawdata.hasOwnProperty('forumid')) {
-			this.forumid = rawdata.forumid;
+	if(this.rawData) {
+		//TODO need to specify if its fully fetched
+		let rawData = this.rawData;
+		if (rawData.hasOwnProperty('forumid')) {
+			this.forumid = parseInt(rawData.forumid);
 		}
-		if (rawdata.hasOwnProperty('title')) {
-			this.title = rawdata.title;
+		if (rawData.hasOwnProperty('title')) {
+			this.title = rawData.title;
 		}
-		if (rawdata.hasOwnProperty('description')) {
-			this.description = rawdata.description;
+		if (rawData.hasOwnProperty('description')) {
+			this.description = rawData.description;
 		}
-		if (rawdata.hasOwnProperty('parentid')) {
-			this.parentid = rawdata.parentid;
+		if (rawData.hasOwnProperty('parentid')) {
+			this.parentid = rawData.parentid;
 		}
-		if (rawdata.hasOwnProperty('foruminfo')) {
-			let foruminfo = rawdata['foruminfo'];
-			if (foruminfo.hasOwnProperty('forumid')) {
-				this.forumid = foruminfo.forumid;
+		if (rawData.hasOwnProperty('foruminfo')) {
+			let forumInfo = rawData.foruminfo;
+			if (forumInfo.hasOwnProperty('forumid')) {
+				this.forumid = parseInt(forumInfo.forumid);
 			}
-			if (foruminfo.hasOwnProperty('title')) {
-				this.title = foruminfo.title;
+			if (forumInfo.hasOwnProperty('title')) {
+				this.title = forumInfo.title;
 			}
-			if (foruminfo.hasOwnProperty('description')) {
-				this.description = foruminfo.description;
+			if (forumInfo.hasOwnProperty('description')) {
+				this.description = forumInfo.description;
 			}
 			
 			
 		}
 		//Get Threads
-		if (rawdata.hasOwnProperty('threadbits')) {
-			let threadbits = rawdata['threadbits'];
+		if (rawData.hasOwnProperty('threadbits')) {
+			let threadBits = rawData.threadbits;
 			this.threads = [];
-			for (let thread in threadbits) {
-				if (threadbits.hasOwnProperty(thread)) {
-					this.threads.push(new Thread(threadbits[thread]));
+			for (let thread in threadBits) {
+				if (threadBits.hasOwnProperty(thread)) {
+					this.threads.push(new Thread(threadBits[thread]));
 				}
 			}
 		}
 		//Get Sub Forums
-		let forumbits;
-		if (rawdata.hasOwnProperty('forumbits')) {
-			forumbits = rawdata['forumbits'];
-		} else if (rawdata.hasOwnProperty('subforums')) {
-			forumbits = rawdata['subforums'];
+		let forumBits;
+		if (rawData.hasOwnProperty('forumbits')) {
+			forumBits = rawData.forumbits;
+		} else if (rawData.hasOwnProperty('subforums')) {
+			forumBits = rawData['subforums'];
 		}
-		if(forumbits){
+		if(forumBits){
 			this.subforums = [];
-			for (let subforum in forumbits) {
-				if (forumbits.hasOwnProperty(subforum)) {
-					this.subforums.push(new Forum(forumbits[subforum]));
+			for (let subForum in forumBits) {
+				if (forumBits.hasOwnProperty(subForum)) {
+					this.subforums.push(new Forum(forumBits[subForum]));
 				}
 			}
 		}
@@ -66,7 +77,7 @@ Forum.prototype.parseData = function() {
 };
 
 Forum.prototype.cleanup = function() {
-	delete(this.rawdata);
+	delete(this.rawData);
 };
 
 module.exports = Forum;

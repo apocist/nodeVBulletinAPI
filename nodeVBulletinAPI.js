@@ -1,316 +1,345 @@
 const md5 = require('js-md5'),
-	os = require('os'),
-	request = require('request'),
-	_ = require('underscore'),
-	Forum = require('./Forum'),
-	Post = require('./Post'),
-	Thread = require('./Thread');
+    os = require('os'),
+    request = require('request'),
+    _ = require('underscore'),
+    Forum = require('./Forum'),
+    Post = require('./Post'),
+    Thread = require('./Thread');
 
-exports.default_vars = {
-	baseUrl: '', //Needed for cookie related commands
-	apiUrl: '',
-	apiKey: '',
-	clientname: 'nodeVBulletinAPI',
-	clientversion: '0.0.1',
-	uniqueid: ''
+exports.defaultVars = {
+    baseUrl: '', //Needed for cookie related commands
+    apiUrl: '',
+    apiKey: '',
+    clientName: 'nodeVBulletinAPI',
+    clientVersion: '0.0.1',
+    uniqueId: ''
 };
 
-exports.client_session_vars = {
-	apiversion: '',
-	apiaccesstoken: '',
-	sessionhash: '',
-	apiclientid: '',
-	secret: '',
-	INITED: false
+exports.clientSessionVars = {
+    apiVersion: '',
+    apiAccessToken: '',
+    sessionHash: '',
+    apiClientId: '',
+    secret: '',
+    inited: false
 };
 
-exports.user_session_vars = {
-	username: '',
-	userid: 0,
-	logged_in: false
+exports.userSessionVars = {
+    username: '',
+    userid: 0,
+    loggedIn: false
 };
 
 /**
  *
- * @param {Object} options
+ * @param {object} options
  * @param {string} options.method - Required action to take
- * @param {Object<string,string>} [options.params={}] - Optional parameter variables
- * @param {?Object<string,string>} [options.cookies] - Optional cookie variables
- * @param {Function} callback - Returns a Object to be parse elsewhere
+ * @param {object<string,string>} [options.params={}] - Optional parameter variables
+ * @param {?object<string,string>} [options.cookies] - Optional cookie variables
+ * @param {?Function} [callback] - Returns a Object to be parse elsewhere
  * @param {string} callback.error
- * @param {Object} callback.data - Returns a Object to be parse elsewhere
+ * @param {object} callback.data - Returns a Object to be parse elsewhere
+ * @returns {Promise<*>}
  */
-exports.call_method = function(options, callback) {
-	let that = this;
-	let sign = true;
-	options = options || {};
-	options.params = options.params || {};
-	if(!options.method){
-		if(callback) callback('call_method(): requires a supplied method');
-		return;
-	}
-	
-	// Sign all calls except for api_init
-	if(options.method === 'api_init') sign = false;
-	
-	let reqParams = {
-		api_m: options.method,
-		api_c: that.client_session_vars.apiclientid, //clientId
-		api_s: that.client_session_vars.apiaccesstoken, //apiAccessToken (may be empty)
-		api_v: that.client_session_vars.apiversion //api version
-	};
-	_.extend(reqParams, options.params); // Combine the arrays
-	
-	if(sign === true) {
-		// Generate a signature to validate that we are authenticated
-		if(that.client_session_vars.INITED) {
-			reqParams.api_sig = md5(that.client_session_vars.apiaccesstoken + that.client_session_vars.apiclientid + that.client_session_vars.secret + that.default_vars.apiKey);
-		} else {
-			if(callback) callback('call_method(): no session variables to sign. Need to initialize via api_init().');
-			return;
-		}
-	}
-	
-	let reqOptions = {
-		url: that.default_vars.apiUrl,
-		formData: reqParams,
-		headers: {
-			'User-Agent': that.default_vars.clientname
-		}
-	};
-	
-	// Some command require adding a cookie, we'll do that here
-	if(options.cookies) {
-		let j = request.jar();
-		for (let variable in options.cookies) {
-			if(options.cookies.hasOwnProperty(variable)) {
-				let cookieString = variable + '=' + options.cookies[variable];
-				let cookie = request.cookie(cookieString);
-				j.setCookie(cookie, that.default_vars.baseUrl);
-			}
-		}
-		reqOptions.jar = j;// Adds cookies to the request
-	}
-	
-	request.post(
-		reqOptions,
-		function (error, response, body) {
-			if (!error && response.statusCode === 200) {
-				if(callback) callback(null, JSON.parse(body))
-			} else {
-				//console.log('No response');
-				if(callback) callback('call_method(): no response.')
-			}
-		}
-	);
+exports.callMethod = function (options, callback) {
+    let that = this;
+    let sign = true;
+    options = options || {};
+    options.params = options.params || {};
+    return new Promise(function (resolve, reject) {
+        if (!options.method) {
+            if (callback) {
+                callback('callMethod(): requires a supplied method');
+                return;
+            }
+            reject('callMethod(): requires a supplied method');
+
+        }
+
+        // Sign all calls except for api_init
+        if (options.method === 'api_init') sign = false;
+
+        let reqParams = {
+            api_m: options.method,
+            api_c: that.clientSessionVars.apiClientId, //clientId
+            api_s: that.clientSessionVars.apiAccessToken, //apiAccessToken (may be empty)
+            api_v: that.clientSessionVars.apiVersion //api version
+        };
+        _.extend(reqParams, options.params); // Combine the arrays
+
+        if (sign === true) {
+            // Generate a signature to validate that we are authenticated
+            if (that.clientSessionVars.inited) {
+                reqParams.api_sig = md5(that.clientSessionVars.apiAccessToken + that.clientSessionVars.apiClientId + that.clientSessionVars.secret + that.defaultVars.apiKey);
+            } else {
+                if (callback) callback('callMethod(): no session variables to sign. Need to initialize via api_init().');
+                return;
+            }
+        }
+
+        let reqOptions = {
+            url: that.defaultVars.apiUrl,
+            formData: reqParams,
+            headers: {
+                'User-Agent': that.defaultVars.clientName
+            }
+        };
+
+        // Some command require adding a cookie, we'll do that here
+        if (options.cookies) {
+            let j = request.jar();
+            for (let variable in options.cookies) {
+                if (options.cookies.hasOwnProperty(variable)) {
+                    let cookieString = variable + '=' + options.cookies[variable];
+                    let cookie = request.cookie(cookieString);
+                    j.setCookie(cookie, that.defaultVars.baseUrl);
+                }
+            }
+            reqOptions.jar = j;// Adds cookies to the request
+        }
+
+        request.post(
+            reqOptions,
+            function (error, response, body) {
+                if (!error && response.statusCode === 200) {
+                    if (callback) callback(null, JSON.parse(body));
+                    resolve(JSON.parse(body));
+                } else {
+                    //console.log('No response');
+                    if (callback) callback('callMethod(): no response.');
+                    reject('callMethod(): no response.');
+                }
+            }
+        );
+
+
+    });
 };
 
 /**
  * Initialize a vb api connection .This needs to be called for the first time
- * @param {Object} options
+ * @param {object} options
  * @param {string} options.apiUrl - Required API URL location, including protocol
  * @param {string} options.apiKey - Required API Key for forum to perform any actions
- * @param {string} options.platformname - Platform Name that is connecting to the API
- * @param {string} options.platformversion - Platform Version that is connecting to the API
- * @param {Function} callback
+ * @param {string} options.platformName - Platform Name that is connecting to the API
+ * @param {string} options.platformVersion - Platform Version that is connecting to the API
+ * @param {Function=} [callback]
  * @param {string} callback.error - TODO
  * @param {boolean} callback.success - Return TRUE on success
+ * @returns {Promise<*>}
  */
-exports.api_init = function(options, callback) {
-	let that = this;
-	options = options || {};
-	if(
-		!options.hasOwnProperty('apiUrl')
-		|| !options.hasOwnProperty('apiKey')
-		|| !options.hasOwnProperty('platformname')
-		|| !options.hasOwnProperty('platformversion')
-	){
-		console.error('api_init(): Initalization requires a `apiUrl`, `apiKey`, `platformname`, and `platformversion`');
-		if(callback) callback('TODO ERROR');
-	}
-	
-	let regex_url = /^(?:([A-Za-z]+):)?(\/{0,3})([0-9.\-A-Za-z]+)(?::(\d+))?(?:\/([^?#]*))?(?:\?([^#]*))?(?:#(.*))?$/;
-	let url_parts = regex_url.exec( options.apiUrl );
-	that.default_vars.baseUrl = that.default_vars.baseUrl || url_parts[1]+':'+url_parts[2]+url_parts[3]+'/';
-	that.default_vars.apiUrl = that.default_vars.apiUrl || options.apiUrl;
-	that.default_vars.apiKey = that.default_vars.apiKey || options.apiKey;
-	that.default_vars.uniqueid = that.default_vars.uniqueid || md5(that.default_vars.clientname + that.default_vars.clientversion + options.platformname + options.platformversion + that.getMacAddress());
+exports.apiInit = async function (options, callback) {
+    let that = this;
+    options = options || {};
+    return new Promise(async function (resolve, reject) {
+        if (
+            !options.hasOwnProperty('apiUrl')
+            || !options.hasOwnProperty('apiKey')
+            || !options.hasOwnProperty('platformName')
+            || !options.hasOwnProperty('platformVersion')
+            || options.platformName === ''
+            || options.platformVersion === ''
+        ) {
+            if (callback) callback('apiInit(): Initialization requires a `apiUrl`, `apiKey`, `platformName`, and `platformVersion`', false);
+            reject('apiInit(): Initialization requires a `apiUrl`, `apiKey`, `platformName`, and `platformVersion`');
+        } else {
 
-	that.call_method(
-		{
-			method: 'api_init',
-			params: {
-				clientname: that.default_vars.clientname,
-				clientversion: that.default_vars.clientversion,
-				platformname: options.platformname,
-				platformversion: options.platformversion,
-				uniqueid: that.default_vars.uniqueid
-			}
-		},
-		function(error, response) {
-			if(response){
-				that.client_session_vars.apiversion = '';
-				that.client_session_vars.apiaccesstoken = '';
-				that.client_session_vars.sessionhash = '';
-				that.client_session_vars.apiclientid = '';
-				that.client_session_vars.secret = '';
-				that.client_session_vars.INITED = false;
-				if(
-					response.apiversion
-					&& response.apiaccesstoken
-					&& response.sessionhash
-					&& response.apiclientid
-					&& response.secret
-				) {
-					that.client_session_vars.apiversion = response.apiversion;
-					that.client_session_vars.apiaccesstoken = response.apiaccesstoken;
-					that.client_session_vars.sessionhash = response.sessionhash;
-					that.client_session_vars.apiclientid = response.apiclientid;
-					that.client_session_vars.secret = response.secret;
-					that.client_session_vars.INITED = true;
-					if(callback) callback(null, true);
-				} else {
-					if(callback) callback('TODO ERROR');
-				}
-			}
-		}
-	);
+            let regex_url = /^(?:([A-Za-z]+):)?(\/{0,3})([0-9.\-A-Za-z]+)(?::(\d+))?(?:\/([^?#]*))?(?:\?([^#]*))?(?:#(.*))?$/;
+            let url_parts = regex_url.exec(options.apiUrl);
+            that.defaultVars.baseUrl = that.defaultVars.baseUrl || url_parts[1] + ':' + url_parts[2] + url_parts[3] + '/';
+            that.defaultVars.apiUrl = that.defaultVars.apiUrl || options.apiUrl;
+            that.defaultVars.apiKey = that.defaultVars.apiKey || options.apiKey;
+            that.defaultVars.uniqueId = that.defaultVars.uniqueId || md5(that.defaultVars.clientName + that.defaultVars.clientVersion + options.platformName + options.platformVersion + that.getMacAddress());
+
+            try {
+                let response = await that.callMethod({
+                    method: 'api_init',
+                    params: {
+                        clientname: that.defaultVars.clientName,
+                        clientversion: that.defaultVars.clientVersion,
+                        platformname: options.platformName,
+                        platformversion: options.platformVersion,
+                        uniqueid: that.defaultVars.uniqueId
+                    }
+                });
+
+                that.clientSessionVars.apiVersion = '';
+                that.clientSessionVars.apiAccessToken = '';
+                that.clientSessionVars.sessionHash = '';
+                that.clientSessionVars.apiClientId = '';
+                that.clientSessionVars.secret = '';
+                that.clientSessionVars.inited = false;
+                if (
+                    response.apiversion
+                    && response.apiaccesstoken
+                    && response.sessionhash
+                    && response.apiclientid
+                    && response.secret
+                ) {
+                    that.clientSessionVars.apiVersion = response.apiversion;
+                    that.clientSessionVars.apiAccessToken = response.apiaccesstoken;
+                    that.clientSessionVars.sessionHash = response.sessionhash;
+                    that.clientSessionVars.apiClientId = response.apiclientid;
+                    that.clientSessionVars.secret = response.secret;
+                    that.clientSessionVars.inited = true;
+                    if (callback) callback(null, true);
+                    resolve();
+                } else {
+                    if (callback) callback('TODO ERROR');//TODO show error
+                    reject('TODO ERROR'); //TODO show error
+                }
+            } catch (e) {
+                if (callback) callback(e);
+                reject(e);
+            }
+        }
+    });
 };
 
 /**
  * Return a Mac address of a network interface for machine identification
  * @returns {string} macAddress
  */
-exports.getMacAddress = function() {
-	let interfaces = os.networkInterfaces();
-	let address;
-	loop1:
-	for (let k in interfaces) {
-		if(interfaces.hasOwnProperty(k)) {
-			for (let k2 in interfaces[k]) {
-				if(interfaces[k].hasOwnProperty(k2)) {
-					let addressI = interfaces[k][k2];
-					if (
-						(addressI.family === 'IPv4' || addressI.family === 'IPv6')
-						&& addressI.hasOwnProperty('internal')
-						&& addressI.internal === false
-						&& addressI.hasOwnProperty('mac')
-						&& addressI.mac !== '00:00:00:00:00:00'
-					) {
-						address = addressI.mac;
-						break loop1;
-					}
-				}
-			}
-		}
-	}
-	return address;
+exports.getMacAddress = function () {
+    let interfaces = os.networkInterfaces();
+    let address;
+    loop1:
+        for (let k in interfaces) {
+            if (interfaces.hasOwnProperty(k)) {
+                for (let k2 in interfaces[k]) {
+                    if (interfaces[k].hasOwnProperty(k2)) {
+                        let addressI = interfaces[k][k2];
+                        if (
+                            (addressI.family === 'IPv4' || addressI.family === 'IPv6')
+                            && addressI.hasOwnProperty('internal')
+                            && addressI.internal === false
+                            && addressI.hasOwnProperty('mac')
+                            && addressI.mac !== '00:00:00:00:00:00'
+                        ) {
+                            address = addressI.mac;
+                            break loop1;
+                        }
+                    }
+                }
+            }
+        }
+    return address;
 };
 
 /**
  *
- * @param {Object} response - Response object from call_method()
+ * @param {object} response - Response object from callMethod()
  * @returns {string} status - Error message
  */
-exports.parseErrorMessage = function(response) {
-	if(
-		response.hasOwnProperty('response')
-		&& response.response.hasOwnProperty('errormessage')
-		&& response.response.errormessage.hasOwnProperty(0)
-	){
-		return response.response.errormessage[0];
-	}
-	return '';
+exports.parseErrorMessage = function (response) {
+    if (
+        response.hasOwnProperty('response')
+        && response.response.hasOwnProperty('errormessage')
+        && response.response.errormessage.hasOwnProperty(0)
+    ) {
+        return response.response.errormessage[0];
+    }
+    return '';
 };
 
 /**
  * Attempts to log in a user.
- * @param {Object} options
+ * @param {object} options
  * @param {string} options.username - Username
  * @param {string} options.password - clear text password TODO need to secure this more?
- * @param {Function} callback
+ * @param {?Function} [callback]
  * @param {string} callback.error - badlogin/badlogin_strikes
- * @param {Object} callback.data - User Session Data
+ * @param {object} callback.data - User Session Data
+ * @returns {Promise<*>}
  */
-exports.login = function(options, callback) {
-	options = options || {};
-	options.password = md5(options.password || '');
-	this.loginMD5(options, callback);
+exports.login = async function (options, callback) {
+    options = options || {};
+    options.password = md5(options.password || '');
+    return await this.loginMD5(options, callback);
 };
 
 /**
  * Attempts to log in a user. Requires the password to be pre md5 hashed.
- * @param {Object} options
+ * @param {object} options
  * @param {string} options.username - Username
  * @param {string} options.password - MD5 hashed password TODO need to secure this more?
- * @param {Function} callback
+ * @param {?Function} [callback]
  * @param {string} callback.error - badlogin/badlogin_strikes
- * @param {Object} callback.data - User Session Data
+ * @param {object} callback.data - User Session Data
+ * @returns {Promise<*>}
  */
-exports.loginMD5 = function(options, callback) {
-	let that = this;
-	options = options || {};
-	that.call_method(
-		{
-			method: 'login_login',
-			params: {
-				vb_login_username: options.username || '',
-				vb_login_md5password: options.password || ''
-			}
-		},
-		function(error, response) {
-			if(response){
-				/**
-				redirect_login - (NOT A ERROR) Login successful
-				badlogin - Username or Password incorrect. Login failed.
-				badlogin_strikes - Username or Password incorrect. Login failed. You have used {X} out of 5 login attempts. After all 5 have been used, you will be unable to login for 15 minutes.
-				*/
-				error = that.parseErrorMessage(response);
-				if(response.session){
-					that.user_session_vars = response.session;
-					if(error === 'redirect_login') {
-						that.user_session_vars.username = options.username;
-						that.user_session_vars.logged_in = true;
-					}
-				}
-				if(error === 'redirect_login') {
-					error = null;
-				}
-				if(callback) callback(error, that.user_session_vars);
-			}
-		}
-	);
+exports.loginMD5 = async function (options, callback) {
+    let that = this;
+    options = options || {};
+    return new Promise(async function (resolve, reject) {
+        try {
+            let response = await that.callMethod(
+                {
+                    method: 'login_login',
+                    params: {
+                        vb_login_username: options.username || '',
+                        vb_login_md5password: options.password || ''
+                    }
+                }
+            );
+            /**
+             redirect_login - (NOT A ERROR) Login successful
+             badlogin - Username or Password incorrect. Login failed.
+             badlogin_strikes - Username or Password incorrect. Login failed. You have used {X} out of 5 login attempts. After all 5 have been used, you will be unable to login for 15 minutes.
+             */
+            let error = that.parseErrorMessage(response);
+            if (response.session) {
+                that.userSessionVars = response.session;
+                if (error === 'redirect_login') {
+                    that.userSessionVars.username = options.username;
+                    that.userSessionVars.loggedIn = true;
+                }
+            }
+            if (error === 'redirect_login') {
+                error = null;
+            }
+            if (callback) callback(error, that.userSessionVars);
+            if (error === null) {
+                resolve(that.userSessionVars);
+            } else {
+                reject(error);
+            }
+
+        } catch (e) {
+            if (callback) callback(e);
+            reject(e);
+        }
+    });
+
 };
 
 /**
  * Attempts to log the user out.
- * @param {Function} callback
+ * @param {?Function} [callback]
  * @param {string} callback.error
- * @param {Object} callback.data - User Session Data (should be empty)
+ * @param {object} callback.data - User Session Data (should be empty)
  */
-exports.logout = function(callback) {
-	let that = this;
-	that.call_method(
-		{
-			method: 'login_logout'
-		},
-		function(error, response) {
-			if(response){
-				error = that.parseErrorMessage(response);
-				if(response.session){
-					that.user_session_vars = response.session;
-					if(error === 'cookieclear') {
-						that.user_session_vars.username = '';
-						that.user_session_vars.logged_in = false;
-					}
-				}
-				if(error === 'cookieclear') {
-					error = null;
-				}
-				if(callback)callback(error, that.user_session_vars);
-			}
-		}
-	);
+exports.logout = async function (callback) {
+    let that = this;
+    try {
+        let response = await that.callMethod({
+            method: 'login_logout'
+        });
+        let error = that.parseErrorMessage(response);
+        if (response.session) {
+            that.userSessionVars = response.session;
+            if (error === 'cookieclear') {
+                that.userSessionVars.username = '';
+                that.userSessionVars.loggedIn = false;
+            }
+        }
+        if (error === 'cookieclear') {
+            error = null;
+        }
+        if (callback) callback(error, that.userSessionVars);
+    } catch (e) {
+        if (callback) callback(e);
+    }
 };
 
 /**
@@ -319,199 +348,199 @@ exports.logout = function(callback) {
  * @param {string} callback.error
  * @param {Forum[]} callback.data - Array of Forum objects
  */
-exports.getForums = function(callback) {
-	this.call_method(
-		{
-			method: 'api_forumlist'
-		},
-		function(error, response) {
-			if(response){
-				if(callback){
-					let forums = [];
-					for (let forum in response) {
-						if(response.hasOwnProperty(forum)){
-							forums.push(new Forum(response[forum]));
-						}
-					}
-					callback(null, forums);//TODO need to handle errors
-				}
-			}
-		}
-	);
+exports.getForums = function (callback) {
+    this.callMethod(
+        {
+            method: 'api_forumlist'
+        },
+        function (error, response) {
+            if (response) {
+                if (callback) {
+                    let forums = [];
+                    for (let forum in response) {
+                        if (response.hasOwnProperty(forum)) {
+                            forums.push(new Forum(response[forum]));
+                        }
+                    }
+                    callback(null, forums);//TODO need to handle errors
+                }
+            }
+        }
+    );
 };
 
 
 /**
  * List detailed info about a forum and it's sub-forums and threads
- * @param {Object} options
+ * @param {object} options
  * @param {number} options.forumid - Forum id
  * TODO note additional options
  * @param {Function} callback
  * @param {string} callback.error
  * @param {Forum} callback.data - Returns a Forum object
  */
-exports.getForum = function(options, callback) {
-	options = options || {};
-	options.forumid = options.forumid || ''; //required
-	this.call_method(
-		{
-			method: 'forumdisplay',
-			params: options
-		},
-		function(error, response) {
-			if(
-				response
-				&& response.response
-			){
-				if(callback){
-					callback(null, new Forum(response.response));// TODO need to handle errors
-				}
-			}
-		}
-	);
+exports.getForum = function (options, callback) {
+    options = options || {};
+    options.forumid = options.forumid || ''; //required
+    this.callMethod(
+        {
+            method: 'forumdisplay',
+            params: options
+        },
+        function (error, response) {
+            if (
+                response
+                && response.response
+            ) {
+                if (callback) {
+                    callback(null, new Forum(response.response));// TODO need to handle errors
+                }
+            }
+        }
+    );
 };
 
 /**
  * List detailed information about a Thread and it's Posts
- * @param {Object} options
+ * @param {object} options
  * @param {number} options.threadid - Thread id
  * TODO note additional options
  * @param {Function} callback
  * @param {string} callback.error
  * @param {Thread} callback.data - Returns a Thread object
  */
-exports.getThread = function(options, callback) {
-	options = options || {};
-	options.threadid = options.threadid || ''; //required
-	this.call_method(
-		{
-			method: 'showthread',
-			params: options
-		},
-		function(error, response) {
-			if(
-				response
-				&& response.response
-			){
-				if(callback) callback(null, new Thread(response.response));// TODO need to handle errors
-			}
-		}
-	);
+exports.getThread = function (options, callback) {
+    options = options || {};
+    options.threadid = options.threadid || ''; //required
+    this.callMethod(
+        {
+            method: 'showthread',
+            params: options
+        },
+        function (error, response) {
+            if (
+                response
+                && response.response
+            ) {
+                if (callback) callback(null, new Thread(response.response));// TODO need to handle errors
+            }
+        }
+    );
 };
 
 /**
  * Attempts to submit a new Post into a specified Thread
- * @param {Object} options
+ * @param {object} options
  * @param {number} options.threadid - Thread id
  * @param {string} options.message - Post Message
  * TODO note additional options
  * @param {Function} callback
  * @param {string} callback.error
- * @param {Object} callback.data - Returns a unhandled response currently
+ * @param {object} callback.data - Returns a unhandled response currently
  */
-exports.newPost = function(options, callback) {
-	options = options || {};
-	options.threadid = options.threadid || ''; //required
-	options.message = options.message || ''; //required
-	this.call_method(
-		{
-			method: 'newreply_postreply',
-			params: options
-		},
-		function(error, response) {
-			if(response){
-				//success is errormessgae 'redirect_postthanks'
-				//reports threadid and postid
-				if(callback) callback(null, response);// TODO handle errors
-			}
-		}
-	);
+exports.newPost = function (options, callback) {
+    options = options || {};
+    options.threadid = options.threadid || ''; //required
+    options.message = options.message || ''; //required
+    this.callMethod(
+        {
+            method: 'newreply_postreply',
+            params: options
+        },
+        function (error, response) {
+            if (response) {
+                //success is errormessgae 'redirect_postthanks'
+                //reports threadid and postid
+                if (callback) callback(null, response);// TODO handle errors
+            }
+        }
+    );
 };
 
 /**
  * TODO untested
  * Attempts to edit an existing Post
- * @param {Object} options
+ * @param {object} options
  * @param {number} options.postid - Post id
  * @param {string} options.message - Post Message
  * TODO note additional options
  * @param {Function} callback
  * @param {string} callback.error
- * @param {Object} callback.data - Returns a unhandled response currently
+ * @param {object} callback.data - Returns a unhandled response currently
  */
-exports.editPost = function(options, callback) {
-	options = options || {};
-	options.postid = options.postid || ''; //required
-	options.message = options.message || ''; //required
-	this.call_method(
-		{
-			method: 'editpost_updatepos',
-			params: options
-		},
-		function(error, response) {
-			if(response){
-				//success is errormessgae 'redirect_postthanks'
-				if(callback) callback(null, response);// TODO handle errors
-			}
-		}
-	);
+exports.editPost = function (options, callback) {
+    options = options || {};
+    options.postid = options.postid || ''; //required
+    options.message = options.message || ''; //required
+    this.callMethod(
+        {
+            method: 'editpost_updatepos',
+            params: options
+        },
+        function (error, response) {
+            if (response) {
+                //success is errormessgae 'redirect_postthanks'
+                if (callback) callback(null, response);// TODO handle errors
+            }
+        }
+    );
 };
 
 /**
  * TODO untested
  * Attempts to delete an existing Post
- * @param {Object} options
+ * @param {object} options
  * @param {number} options.postid - Post id
  * TODO note additional options
  * @param {Function} callback
  * @param {string} callback.error
- * @param {Object} callback.data - Returns a unhandled response currently
+ * @param {object} callback.data - Returns a unhandled response currently
  */
-exports.deletePost = function(options, callback) {
-	options = options || {};
-	options.postid = options.postid || ''; //required
-	this.call_method(
-		{
-			method: 'editpost_deletepost',
-			params: options
-		},
-		function(error, response) {
-			if(response){
-				if(callback) callback(null, response);// TODO handle errors
-			}
-		}
-	);
+exports.deletePost = function (options, callback) {
+    options = options || {};
+    options.postid = options.postid || ''; //required
+    this.callMethod(
+        {
+            method: 'editpost_deletepost',
+            params: options
+        },
+        function (error, response) {
+            if (response) {
+                if (callback) callback(null, response);// TODO handle errors
+            }
+        }
+    );
 };
 
 /**
  * Attempts to submit a new Thread into a specified Forum
- * @param {Object} options
+ * @param {object} options
  * @param {number} options.forumid - Forum Id
  * @param {string} options.subject - Post/Thread Subject
  * @param {string} options.message - Post Message
  * TODO note additional options
  * @param {Function} callback
  * @param {string} callback.error
- * @param {Object} callback.data - Returns a unhandled response currently
+ * @param {object} callback.data - Returns a unhandled response currently
  */
-exports.newThread = function(options, callback) {
-	options = options || {};
-	options.forumid = options.forumid || ''; //required
-	options.subject = options.subject || ''; //required
-	options.message = options.message || ''; //required
-	this.call_method(
-		{
-			method: 'newthread_postthread',
-			params: options
-		},
-		function(error, response) {
-			if(response){
-				//success is errormessgae 'redirect_postthanks'
-				//reports threadid and postid
-				if(callback) callback(null, response);// TODO handle errors
-			}
-		}
-	);
+exports.newThread = function (options, callback) {
+    options = options || {};
+    options.forumid = options.forumid || ''; //required
+    options.subject = options.subject || ''; //required
+    options.message = options.message || ''; //required
+    this.callMethod(
+        {
+            method: 'newthread_postthread',
+            params: options
+        },
+        function (error, response) {
+            if (response) {
+                //success is errormessgae 'redirect_postthanks'
+                //reports threadid and postid
+                if (callback) callback(null, response);// TODO handle errors
+            }
+        }
+    );
 };
 
 /**
@@ -519,26 +548,26 @@ exports.newThread = function(options, callback) {
  * @param {number} threadid - Id of Thread to close
  * @param {Function} callback
  * @param {string} callback.error
- * @param {Object} callback.data - Returns a unhandled response currently
+ * @param {object} callback.data - Returns a unhandled response currently
  */
-exports.modCloseThread = function(threadid, callback) {
-	let cookies = {};
-	if(threadid) {
-		//TODO multiple ids are delimited with a '-'. eg: 123-345-456
-		cookies.vbulletin_inlinethread = threadid;
-	}
-	this.call_method(
-		{
-			method: 'inlinemod_close',
-			cookies: cookies || {}
-		},
-		function(error, response) {
-			if(response){
-				//redirect_inline_closed on success
-				if(callback) callback(null, response);//TODO handle errors
-			}
-		}
-	);
+exports.modCloseThread = function (threadid, callback) {
+    let cookies = {};
+    if (threadid) {
+        //TODO multiple ids are delimited with a '-'. eg: 123-345-456
+        cookies.vbulletin_inlinethread = threadid;
+    }
+    this.callMethod(
+        {
+            method: 'inlinemod_close',
+            cookies: cookies || {}
+        },
+        function (error, response) {
+            if (response) {
+                //redirect_inline_closed on success
+                if (callback) callback(null, response);//TODO handle errors
+            }
+        }
+    );
 };
 
 /**
@@ -546,26 +575,26 @@ exports.modCloseThread = function(threadid, callback) {
  * @param {number} threadid - Id of Thread to open
  * @param {Function} callback
  * @param {string} callback.error
- * @param {Object} callback.data - Returns a unhandled response currently
+ * @param {object} callback.data - Returns a unhandled response currently
  */
-exports.modOpenThread = function(threadid, callback) {
-	let cookies = {};
-	if(threadid) {
-		//TODO multiple ids are delimited with a '-'. eg: 123-345-456
-		cookies.vbulletin_inlinethread = threadid;
-	}
-	this.call_method(
-		{
-			method: 'inlinemod_open',
-			cookies: cookies || {}
-		},
-		function(error, response) {
-			if(response){
-				//redirect_inline_closed on success
-				if(callback) callback(null, response);//TODO handle errors
-			}
-		}
-	);
+exports.modOpenThread = function (threadid, callback) {
+    let cookies = {};
+    if (threadid) {
+        //TODO multiple ids are delimited with a '-'. eg: 123-345-456
+        cookies.vbulletin_inlinethread = threadid;
+    }
+    this.callMethod(
+        {
+            method: 'inlinemod_open',
+            cookies: cookies || {}
+        },
+        function (error, response) {
+            if (response) {
+                //redirect_inline_closed on success
+                if (callback) callback(null, response);//TODO handle errors
+            }
+        }
+    );
 };
 
 /**
@@ -574,24 +603,24 @@ exports.modOpenThread = function(threadid, callback) {
  * @param {number} threadid - Id of Thread to delete
  * @param {Function} callback
  * @param {string} callback.error
- * @param {Object} callback.data - Returns a unhandled response currently
+ * @param {object} callback.data - Returns a unhandled response currently
  */
-exports.modDeleteThread = function(threadid, callback) {
-	let cookies = {};
-	if(threadid) {
-		//TODO multiple ids are delimited with a '-'. eg: 123-345-456
-		cookies.vbulletin_inlinethread = threadid;
-	}
-	this.call_method(
-		{
-			method: 'inlinemod_dodeletethreads ',
-			cookies: cookies || {}
-		},
-		function(error, response) {
-			if(response){
-				//redirect_inline_closed on success
-				if(callback) callback(null, response);//TODO handle errors
-			}
-		}
-	);
+exports.modDeleteThread = function (threadid, callback) {
+    let cookies = {};
+    if (threadid) {
+        //TODO multiple ids are delimited with a '-'. eg: 123-345-456
+        cookies.vbulletin_inlinethread = threadid;
+    }
+    this.callMethod(
+        {
+            method: 'inlinemod_dodeletethreads ',
+            cookies: cookies || {}
+        },
+        function (error, response) {
+            if (response) {
+                //redirect_inline_closed on success
+                if (callback) callback(null, response);//TODO handle errors
+            }
+        }
+    );
 };

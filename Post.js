@@ -1,24 +1,39 @@
 
-function Post(rawdata) {
-	this.rawdata = rawdata;
+/**
+ *
+ * @param {object} rawData
+ * @constructor
+ * @property {number} postid
+ * @property {number} threadid
+ * @property {number} posttime
+ * @property {string} title
+ * @property {string} message
+ * @property {string} message_plain
+ * @property {string} message_bbcode
+ * @property {string} signature
+ * @property {number} userid
+ * @property {string} username
+ */
+const Post = function Post(rawData) {
+	this.rawData = rawData;
 	this.parseData();
 	this.cleanup();
-}
+};
 
 Post.prototype.parseData = function() {
-	if(this.rawdata) {
-		let rawdata = this.rawdata;
+	if(this.rawData) {
+		let rawData = this.rawData;
 		
-		if(rawdata.hasOwnProperty('post')) {
-			let postData = rawdata['post'];
+		if(rawData.hasOwnProperty('post')) {
+			let postData = rawData['post'];
 			if (postData.hasOwnProperty('postid')) {
-				this.postid = postData.postid;
+				this.postid = parseInt(postData.postid);
 			}
 			if (postData.hasOwnProperty('threadid')) {
-				this.threadid = postData.threadid;
+				this.threadid = parseInt(postData.threadid);
 			}
 			if (postData.hasOwnProperty('posttime')) {
-				this.posttime = postData.posttime;
+				this.posttime = parseInt(postData.posttime);
 			}
 			if (postData.hasOwnProperty('title')) {
 				this.title = postData.title;
@@ -38,7 +53,7 @@ Post.prototype.parseData = function() {
 			
 			//TODO handle users
 			if (postData.hasOwnProperty('userid')) {
-				this.userid = postData.userid;
+				this.userid = parseInt(postData.userid);
 			}
 			if (postData.hasOwnProperty('username')) {
 				this.username = postData.username;
@@ -49,7 +64,7 @@ Post.prototype.parseData = function() {
 };
 
 Post.prototype.cleanup = function() {
-	delete(this.rawdata);
+	delete(this.rawData);
 };
 
 module.exports = Post;

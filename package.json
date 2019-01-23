@@ -1,11 +1,22 @@
 {
   "name": "nodeVBulletinAPI",
+  "author": "Apocist",
+  "desciprtion": "nodejs API interface to communicate with VBulletin servers",
   "version": "0.0.2",
-  "private": true,
+  "license": "GPL-3.0",
+  "private": false,
+  "engines": {
+    "node": ">=6"
+  },
   "scripts": {},
+  "main": "nodeVBulletinAPI.js",
   "dependencies": {
     "js-md5": "^0.7.2",
     "request": "^2.83.0",
     "underscore": "^1.8.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/apocist/nodeVBulletinAPI"
   }
 }

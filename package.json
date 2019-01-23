@@ -1,5 +1,5 @@
 {
-  "name": "nodeVBulletinAPI",
+  "name": "node-vbulletin-api",
   "author": "Apocist",
   "desciprtion": "nodejs API interface to communicate with VBulletin servers",
   "version": "0.0.2",

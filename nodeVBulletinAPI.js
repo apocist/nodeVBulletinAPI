@@ -391,8 +391,6 @@ exports.getForums = function (callback) {
  * @returns {Promise<Forum>}
  */
 exports.getForum = function (options, callback) {
-    console.log(options);
-
     let that = this;
     options = options || {};
     options.forumid = options.forumid || ''; //required
@@ -404,13 +402,11 @@ exports.getForum = function (options, callback) {
                 method: 'forumdisplay',
                 params: options
             });
-            console.log('response', response);
             if (
                 response
                 && response.hasOwnProperty('response')
             ) {
                 forum = new Forum(response.response);
-                console.log('forum', forum);
             }
         } catch (e) {
             if (callback) callback(e);
@@ -432,24 +428,36 @@ exports.getForum = function (options, callback) {
  * @param {Function=} [callback]
  * @param {string} callback.error
  * @param {Thread} callback.data - Returns a Thread object
+ * @returns {Promise<Thread>}
  */
 exports.getThread = function (options, callback) {
+    let that = this;
     options = options || {};
     options.threadid = options.threadid || ''; //required
-    this.callMethod(
-        {
-            method: 'showthread',
-            params: options
-        },
-        function (error, response) {
+
+    return new Promise(async function (resolve, reject) {
+        let thread;
+        try {
+            let response = await that.callMethod({
+                method: 'showthread',
+                params: options
+            });
             if (
                 response
-                && response.response
+                && response.hasOwnProperty('response')
             ) {
-                if (callback) callback(null, new Thread(response.response));// TODO need to handle errors
+                thread = new Thread(response.response);
             }
+        } catch (e) {
+            if (callback) callback(e);
+            reject(e);
         }
-    );
+
+        if (callback) {
+            callback(null, thread);//TODO need to handle errors
+        }
+        resolve(thread);
+    });
 };
 
 /**

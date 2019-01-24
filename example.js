@@ -31,15 +31,7 @@ async function loginConfirmed(userData) {
 
     //console.log('got forum:', await vbApi.getForum({forumid: 565}));
 
-    /*vbApi.getThread(
-        {
-            threadid: 41257
-        },
-        function (error, data) {
-            console.log('got thread:');
-            console.log(data);
-        }
-    );*/
+    //console.log('got thread:', await vbApi.getThread({threadid: 41257}));
 
     /*vbApi.newPost(
         {

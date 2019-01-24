@@ -4,12 +4,12 @@ const Thread = require('./Thread');
  *
  * @param {object} rawData
  * @constructor
- * @property {number} forumid
+ * @property {number} forumId
  * @property {string} title
  * @property {string} description
- * @property {number} parentid
+ * @property {number} parentId
  * @property {[Thread]} threads
- * @property {[Forum]} subforums
+ * @property {[Forum]} subForums
  */
 const Forum = function Forum(rawData) {
 	this.rawData = rawData;
@@ -22,7 +22,7 @@ Forum.prototype.parseData = function() {
 		//TODO need to specify if its fully fetched
 		let rawData = this.rawData;
 		if (rawData.hasOwnProperty('forumid')) {
-			this.forumid = parseInt(rawData.forumid);
+			this.forumId = parseInt(rawData.forumid);
 		}
 		if (rawData.hasOwnProperty('title')) {
 			this.title = rawData.title;
@@ -31,12 +31,12 @@ Forum.prototype.parseData = function() {
 			this.description = rawData.description;
 		}
 		if (rawData.hasOwnProperty('parentid')) {
-			this.parentid = rawData.parentid;
+			this.subForums = rawData.parentid;
 		}
 		if (rawData.hasOwnProperty('foruminfo')) {
 			let forumInfo = rawData.foruminfo;
 			if (forumInfo.hasOwnProperty('forumid')) {
-				this.forumid = parseInt(forumInfo.forumid);
+				this.forumId = parseInt(forumInfo.forumid);
 			}
 			if (forumInfo.hasOwnProperty('title')) {
 				this.title = forumInfo.title;
@@ -65,10 +65,10 @@ Forum.prototype.parseData = function() {
 			forumBits = rawData['subforums'];
 		}
 		if(forumBits){
-			this.subforums = [];
+			this.subForums = [];
 			for (let subForum in forumBits) {
 				if (forumBits.hasOwnProperty(subForum)) {
-					this.subforums.push(new Forum(forumBits[subForum]));
+					this.subForums.push(new Forum(forumBits[subForum]));
 				}
 			}
 		}

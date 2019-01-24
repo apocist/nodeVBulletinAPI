@@ -18,34 +18,20 @@ async function startup() {
     try {
         await vbApi.apiInit(config);
         let userData = await vbApi.login(user_config);
-        loginConfirmed(userData);
+        await loginConfirmed(userData);
     } catch (e) {
         console.error(e);
     }
 }
 
-function loginConfirmed(userData) {
+async function loginConfirmed(userData) {
     console.log('logged in', userData);
 
-    /*vbApi.getForums(
-        function (error, data) {
-            console.log('got forum list:');
-            console.log(data);
-        }
-    );
+    //console.log('got forum list:', await vbApi.getForums());
 
-    vbApi.getForum(
-        {
-            forumid: 565
-        },
-        function (error, data) {
-            console.log('got forum:');
-            console.log(data);
-            //console.log(data.threads[0]);
-        }
-    );
+    //console.log('got forum:', await vbApi.getForum({forumid: 565}));
 
-    vbApi.getThread(
+    /*vbApi.getThread(
         {
             threadid: 41257
         },

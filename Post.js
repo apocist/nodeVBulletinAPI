@@ -4,14 +4,14 @@
  * @param {object} rawData
  * @constructor
  * @property {number} postid
- * @property {number} threadid
- * @property {number} posttime
+ * @property {number} threadId
+ * @property {number} postTime
  * @property {string} title
  * @property {string} message
- * @property {string} message_plain
- * @property {string} message_bbcode
+ * @property {string} messagePlain
+ * @property {string} messageBBCode
  * @property {string} signature
- * @property {number} userid
+ * @property {number} userId
  * @property {string} username
  */
 const Post = function Post(rawData) {
@@ -27,13 +27,13 @@ Post.prototype.parseData = function() {
 		if(rawData.hasOwnProperty('post')) {
 			let postData = rawData['post'];
 			if (postData.hasOwnProperty('postid')) {
-				this.postid = parseInt(postData.postid);
+				this.postId = parseInt(postData.postid);
 			}
 			if (postData.hasOwnProperty('threadid')) {
-				this.threadid = parseInt(postData.threadid);
+				this.threadId = parseInt(postData.threadid);
 			}
 			if (postData.hasOwnProperty('posttime')) {
-				this.posttime = parseInt(postData.posttime);
+				this.postTime = parseInt(postData.posttime);
 			}
 			if (postData.hasOwnProperty('title')) {
 				this.title = postData.title;
@@ -42,10 +42,10 @@ Post.prototype.parseData = function() {
 				this.message = postData.message;
 			}
 			if (postData.hasOwnProperty('message_plain')) {
-				this.message_plain = postData.message_plain;
+				this.messagePlain = postData.message_plain;
 			}
 			if (postData.hasOwnProperty('message_bbcode')) {
-				this.message_bbcode = postData.message_bbcode;
+				this.messageBBCode = postData.message_bbcode;
 			}
 			if (postData.hasOwnProperty('signature')) {
 				this.signature = postData.signature;
@@ -53,7 +53,7 @@ Post.prototype.parseData = function() {
 			
 			//TODO handle users
 			if (postData.hasOwnProperty('userid')) {
-				this.userid = parseInt(postData.userid);
+				this.userId = parseInt(postData.userid);
 			}
 			if (postData.hasOwnProperty('username')) {
 				this.username = postData.username;

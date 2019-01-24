@@ -4,9 +4,9 @@ const Post = require('./Post');
  *
  * @param {object} rawData
  * @constructor
- * @property {number} forumid
- * @property {string} forumtitle
- * @property {number} threadid
+ * @property {number} forumId
+ * @property {string} forumTitle
+ * @property {number} threadId
  * @property {string} title
  * @property {[Post]} posts
  */
@@ -25,13 +25,13 @@ Thread.prototype.parseData = function() {
 		if(rawData.hasOwnProperty('thread')) {
 			let threadData = rawData['thread'];
 			if (threadData.hasOwnProperty('forumid')) {
-				this.forumid = parseInt(threadData.forumid);
+				this.forumId = parseInt(threadData.forumid);
 			}
 			if (threadData.hasOwnProperty('forumtitle')) {
-				this.forumtitle = threadData.forumtitle;
+				this.forumTitle = threadData.forumtitle;
 			}
 			if (threadData.hasOwnProperty('threadid')) {
-				this.threadid = parseInt(threadData.threadid);
+				this.threadId = parseInt(threadData.threadid);
 			}
 			if (threadData.hasOwnProperty('title')) {
 				this.title = threadData.title;

@@ -315,7 +315,7 @@ exports.loginMD5 = async function (options, callback) {
 
 /**
  * Attempts to log the user out.
- * @param {?Function} [callback]
+ * @param {Function=} [callback]
  * @param {string} callback.error
  * @param {object} callback.data - User Session Data (should be empty)
  */
@@ -344,29 +344,39 @@ exports.logout = async function (callback) {
 
 /**
  * List every Forum and sub forum available to the user.
- * @param {Function} callback
+ * @param {Function=} [callback]
  * @param {string} callback.error
  * @param {Forum[]} callback.data - Array of Forum objects
+ * @returns {Promise<Forum[]>}
  */
 exports.getForums = function (callback) {
-    this.callMethod(
-        {
-            method: 'api_forumlist'
-        },
-        function (error, response) {
+    let that = this;
+    return new Promise(async function (resolve, reject) {
+        //let response;
+        let forums = [];
+        try {
+            let response = await that.callMethod(
+                {
+                    method: 'api_forumlist'
+                });
+
             if (response) {
-                if (callback) {
-                    let forums = [];
-                    for (let forum in response) {
-                        if (response.hasOwnProperty(forum)) {
-                            forums.push(new Forum(response[forum]));
-                        }
+                for (let forum in response) {
+                    if (response.hasOwnProperty(forum)) {
+                        forums.push(new Forum(response[forum]));
                     }
-                    callback(null, forums);//TODO need to handle errors
                 }
             }
+        } catch (e) {
+            if (callback) callback(e);
+            reject(e);
         }
-    );
+
+        if (callback) {
+            callback(null, forums);//TODO need to handle errors
+        }
+        resolve(forums);
+    });
 };
 
 
@@ -375,29 +385,43 @@ exports.getForums = function (callback) {
  * @param {object} options
  * @param {number} options.forumid - Forum id
  * TODO note additional options
- * @param {Function} callback
+ * @param {Function=} [callback]
  * @param {string} callback.error
  * @param {Forum} callback.data - Returns a Forum object
+ * @returns {Promise<Forum>}
  */
 exports.getForum = function (options, callback) {
+    console.log(options);
+
+    let that = this;
     options = options || {};
     options.forumid = options.forumid || ''; //required
-    this.callMethod(
-        {
-            method: 'forumdisplay',
-            params: options
-        },
-        function (error, response) {
+
+    return new Promise(async function (resolve, reject) {
+        let forum;
+        try {
+            let response = await that.callMethod({
+                method: 'forumdisplay',
+                params: options
+            });
+            console.log('response', response);
             if (
                 response
-                && response.response
+                && response.hasOwnProperty('response')
             ) {
-                if (callback) {
-                    callback(null, new Forum(response.response));// TODO need to handle errors
-                }
+                forum = new Forum(response.response);
+                console.log('forum', forum);
             }
+        } catch (e) {
+            if (callback) callback(e);
+            reject(e);
         }
-    );
+
+        if (callback) {
+            callback(null, forum);//TODO need to handle errors
+        }
+        resolve(forum);
+    });
 };
 
 /**
@@ -405,7 +429,7 @@ exports.getForum = function (options, callback) {
  * @param {object} options
  * @param {number} options.threadid - Thread id
  * TODO note additional options
- * @param {Function} callback
+ * @param {Function=} [callback]
  * @param {string} callback.error
  * @param {Thread} callback.data - Returns a Thread object
  */
@@ -434,7 +458,7 @@ exports.getThread = function (options, callback) {
  * @param {number} options.threadid - Thread id
  * @param {string} options.message - Post Message
  * TODO note additional options
- * @param {Function} callback
+ * @param {Function=} [callback]
  * @param {string} callback.error
  * @param {object} callback.data - Returns a unhandled response currently
  */

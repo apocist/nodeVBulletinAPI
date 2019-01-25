@@ -185,8 +185,9 @@ exports.apiInit = async function (options, callback) {
                     if (callback) callback(null, true);
                     resolve();
                 } else {
-                    if (callback) callback('TODO ERROR');//TODO show error
-                    reject('TODO ERROR'); //TODO show error
+                    let error = that.parseErrorMessage(response) || 'TODO ERROR (api connection did not return a session)';
+                    if (callback) callback(error);
+                    reject(error);
                 }
             } catch (e) {
                 if (callback) callback(e);
@@ -310,7 +311,6 @@ exports.loginMD5 = async function (options, callback) {
             reject(e);
         }
     });
-
 };
 
 /**

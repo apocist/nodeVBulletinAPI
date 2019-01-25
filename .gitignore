@@ -29,5 +29,11 @@ node_modules
 # PhpStorm Configuration
 .idea/
 
+# package locks
+package-lock.json
+
 # Bower.io
 .bowerrc
+
+# private
+private.js

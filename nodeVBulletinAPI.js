@@ -18,7 +18,7 @@ exports.defaultVars = {
 exports.clientSessionVars = {
     apiVersion: '',
     apiAccessToken: '',
-    sessionHash: '',
+    sessionHash: '', // Unused?
     apiClientId: '',
     secret: '',
     inited: false
@@ -149,7 +149,7 @@ exports.apiInit = async function (options, callback) {
             that.defaultVars.baseUrl = that.defaultVars.baseUrl || url_parts[1] + ':' + url_parts[2] + url_parts[3] + '/';
             that.defaultVars.apiUrl = that.defaultVars.apiUrl || options.apiUrl;
             that.defaultVars.apiKey = that.defaultVars.apiKey || options.apiKey;
-            that.defaultVars.uniqueId = that.defaultVars.uniqueId || md5(that.defaultVars.clientName + that.defaultVars.clientVersion + options.platformName + options.platformVersion + that.getMacAddress());
+            that.defaultVars.uniqueId = that.defaultVars.uniqueId || md5(that.defaultVars.clientName + that.defaultVars.clientVersion + options.platformName + options.platformVersion + that.getMacAddress() + new Date().getTime());
 
             try {
                 let response = await that.callMethod({
@@ -233,14 +233,18 @@ exports.getMacAddress = function () {
  * @returns {string} status - Error message
  */
 exports.parseErrorMessage = function (response) {
+    let retur = '';
     if (
         response.hasOwnProperty('response')
         && response.response.hasOwnProperty('errormessage')
-        && response.response.errormessage.hasOwnProperty(0)
     ) {
-        return response.response.errormessage[0];
+        if(_.isArray(response.response.errormessage)){
+            retur =  response.response.errormessage[0]
+        } else {
+            retur = response.response.errormessage;
+        }
     }
-    return '';
+    return retur;
 };
 
 /**
@@ -470,23 +474,38 @@ exports.getThread = function (options, callback) {
  * @param {string} callback.error
  * @param {object} callback.data - Returns a unhandled response currently
  */
-exports.newPost = function (options, callback) {
+exports.newPost = async function (options, callback) {
+    let that = this;
     options = options || {};
     options.threadid = options.threadid || ''; //required
     options.message = options.message || ''; //required
-    this.callMethod(
-        {
-            method: 'newreply_postreply',
-            params: options
-        },
-        function (error, response) {
-            if (response) {
-                //success is errormessgae 'redirect_postthanks'
-                //reports threadid and postid
-                if (callback) callback(null, response);// TODO handle errors
+
+    return new Promise(async function (resolve, reject) {
+
+        let response;
+        try {
+            response = await that.callMethod({
+                method: 'newreply_postreply',
+                params: options
+            });
+            let possibleError = that.parseErrorMessage(response);
+            //success is errormessgae 'redirect_postthanks'
+            //reports threadid and postid
+            if(
+                possibleError === 'redirect_postthanks'
+                && response.hasOwnProperty('show')
+            ){
+                if (callback) callback(response.show);
+                resolve(response.show);
+            } else {
+                if (callback) callback(possibleError || response);
+                reject(possibleError || response);
             }
+        } catch (e) {
+            if (callback) callback(e);
+            reject(e);
         }
-    );
+    });
 };
 
 /**

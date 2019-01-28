@@ -469,22 +469,27 @@ exports.getThread = function (options, callback) {
  * @param {object} options
  * @param {number} options.threadid - Thread id
  * @param {string} options.message - Post Message
+ * @param {boolean=} options.signature  - Optionally append your signature
  * TODO note additional options
  * @param {Function=} [callback]
  * @param {string} callback.error
  * @param {object} callback.data - Returns a unhandled response currently
+ * @returns {Promise<Object || String>}
  */
 exports.newPost = async function (options, callback) {
     let that = this;
     options = options || {};
     options.threadid = options.threadid || ''; //required
     options.message = options.message || ''; //required
+    if(options.signature === true){
+        //System only handle 1 or 0. defaults to 0
+        options.signature = '1';
+    }
 
     return new Promise(async function (resolve, reject) {
 
-        let response;
         try {
-            response = await that.callMethod({
+            let response = await that.callMethod({
                 method: 'newreply_postreply',
                 params: options
             });
@@ -509,58 +514,92 @@ exports.newPost = async function (options, callback) {
 };
 
 /**
- * TODO untested
  * Attempts to edit an existing Post
  * @param {object} options
  * @param {number} options.postid - Post id
  * @param {string} options.message - Post Message
+ * @param {string=} options.reason - Reason for editing
+ * @param {boolean=} options.signature - Optionally append your signature
  * TODO note additional options
- * @param {Function} callback
+ * @param {Function=} [callback]
  * @param {string} callback.error
  * @param {object} callback.data - Returns a unhandled response currently
+ * @returns {Promise<Object || String>}
  */
 exports.editPost = function (options, callback) {
+    let that = this;
     options = options || {};
     options.postid = options.postid || ''; //required
     options.message = options.message || ''; //required
-    this.callMethod(
-        {
-            method: 'editpost_updatepos',
-            params: options
-        },
-        function (error, response) {
-            if (response) {
-                //success is errormessgae 'redirect_postthanks'
-                if (callback) callback(null, response);// TODO handle errors
+    if(options.signature === true){
+        //System only handle 1 or 0. defaults to 0
+        options.signature = '1';
+    }
+
+    return new Promise(async function (resolve, reject) {
+        try {
+            let response = await that.callMethod({
+                method: 'editpost_updatepost',
+                params: options
+            });
+            let possibleError = that.parseErrorMessage(response);
+            //success is errormessgae 'redirect_editthanks'
+            if(possibleError === 'redirect_editthanks'){
+                if (callback) callback({postid: options.postid});
+                resolve({postid: options.postid});
+            } else {
+                if (callback) callback(possibleError || response);
+                reject(possibleError || response);
             }
+        } catch (e) {
+            if (callback) callback(e);
+            reject(e);
         }
-    );
+    });
 };
 
 /**
- * TODO untested
+ * TODO untested - does not seem to function yet
  * Attempts to delete an existing Post
  * @param {object} options
  * @param {number} options.postid - Post id
+ * @param {number} options.threadid - Thread id
+ * @param {string=} options.reason - Reason for deleting
  * TODO note additional options
- * @param {Function} callback
+ * @param {Function=} [callback]
  * @param {string} callback.error
  * @param {object} callback.data - Returns a unhandled response currently
+ * @returns {Promise<Object || String>}
  */
 exports.deletePost = function (options, callback) {
+    let that = this;
     options = options || {};
     options.postid = options.postid || ''; //required
-    this.callMethod(
-        {
-            method: 'editpost_deletepost',
-            params: options
-        },
-        function (error, response) {
-            if (response) {
-                if (callback) callback(null, response);// TODO handle errors
+
+    return new Promise(async function (resolve, reject) {
+        try {
+            let response = await that.callMethod({
+                method: 'editpost_deletepost',
+                params: options
+            });
+            let possibleError = that.parseErrorMessage(response);
+            //unknown response
+            if(
+                possibleError === 'redirect_deletepost'
+                && response.hasOwnProperty('show')
+            ){
+                console.log('response', response);
+                if (callback) callback(response.show);
+                resolve(response.show);
+            } else {
+                if (callback) callback(possibleError || response);
+                reject(possibleError || response);
             }
+        } catch (e) {
+            if (callback) callback(e);
+            reject(e);
         }
-    );
+    });
 };
 
 /**
@@ -570,28 +609,42 @@ exports.deletePost = function (options, callback) {
  * @param {string} options.subject - Post/Thread Subject
  * @param {string} options.message - Post Message
  * TODO note additional options
- * @param {Function} callback
+ * @param {Function=} [callback]
  * @param {string} callback.error
  * @param {object} callback.data - Returns a unhandled response currently
+ * @returns {Promise<Object || String>}
  */
 exports.newThread = function (options, callback) {
+    let that = this;
     options = options || {};
     options.forumid = options.forumid || ''; //required
     options.subject = options.subject || ''; //required
     options.message = options.message || ''; //required
-    this.callMethod(
-        {
-            method: 'newthread_postthread',
-            params: options
-        },
-        function (error, response) {
-            if (response) {
-                //success is errormessgae 'redirect_postthanks'
-                //reports threadid and postid
-                if (callback) callback(null, response);// TODO handle errors
+
+    return new Promise(async function (resolve, reject) {
+        try {
+            let response = await that.callMethod({
+                method: 'newthread_postthread',
+                params: options
+            });
+            let possibleError = that.parseErrorMessage(response);
+            //success is errormessgae 'redirect_postthanks'
+            //reports threadid and postid
+            if(
+                possibleError === 'redirect_postthanks'
+                && response.hasOwnProperty('show')
+            ){
+                if (callback) callback(response.show);
+                resolve(response.show);
+            } else {
+                if (callback) callback(possibleError || response);
+                reject(possibleError || response);
             }
+        } catch (e) {
+            if (callback) callback(e);
+            reject(e);
         }
-    );
+    });
 };
 
 /**

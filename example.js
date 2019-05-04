@@ -1,4 +1,4 @@
-const vbApi = require('./nodeVBulletinAPI');
+const VBApi = require('./nodeVBulletinAPI');
 
 const config = {
     apiUrl: 'http://google.com/forum/api.php',
@@ -16,51 +16,42 @@ startup();
 
 async function startup() {
     try {
-        await vbApi.apiInit(config);
-        let userData = await vbApi.login(user_config);
-        await loginConfirmed(userData);
-    } catch (e) {
-        console.error(e);
-    }
-}
+        // Let's connect to the server and start our session
+        let session = new VBApi(config);
+        session.initialize(); // FIXME should all happen on new
 
-async function loginConfirmed(userData) {
-    console.log('logged in', userData);
+        // To use more command, let's log our session in
+        console.log('logged in:', await session.login(user_config));
 
-    //console.log('got forum list:', await vbApi.getForums());
+        //Some more additional actions we can take:
 
-    //console.log('got forum:', await vbApi.getForum({forumid: 565}));
+        //console.log('got forum list:', await session.getForums());
 
-    //console.log('got thread:', await vbApi.getThread({threadid: 41257}));
+        //console.log('got forum:', await session.getForum({forumid: 565}));
 
-    /*vbApi.newPost(
-        {
+        //console.log('got thread:', await session.getThread({threadid: 41257}));
+
+        //console.log('closed thread:', await session.modCloseThread(41257));
+
+        /*
+        let data;
+        data = await session.newPost({
             threadid: 41257,
             message: 'Wiggle new testings~!'
-        },
-        function (error, data) {
-            console.log('posted post:');
-            console.log(data);
-        }
-    );
+        });
+        console.log('posted post:', data);
 
-    vbApi.newThread(
-        {
+        data = await session.newThread({
             forumid: 565,
             subject: 'new Thread test',
             message: 'Just testing again!'
-        },
-        function (error, data) {
-            console.log('posted thread:');
-            console.log(data);
-        }
-    );
+        });
+        console.log('posted thread:', data);
 
-    vbApi.modCloseThread(
-        41257,
-        function (error, data) {
-            console.log('closed thread:');
-            console.log(data);
-        }
-    );*/
+
+        */
+
+    } catch (e) {
+        console.error(e);
+    }
 }

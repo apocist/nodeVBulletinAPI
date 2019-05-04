@@ -238,8 +238,8 @@ exports.parseErrorMessage = function (response) {
         response.hasOwnProperty('response')
         && response.response.hasOwnProperty('errormessage')
     ) {
-        if(_.isArray(response.response.errormessage)){
-            retur =  response.response.errormessage[0]
+        if (_.isArray(response.response.errormessage)) {
+            retur = response.response.errormessage[0]
         } else {
             retur = response.response.errormessage;
         }
@@ -481,7 +481,7 @@ exports.newPost = async function (options, callback) {
     options = options || {};
     options.threadid = options.threadid || ''; //required
     options.message = options.message || ''; //required
-    if(options.signature === true){
+    if (options.signature === true) {
         //System only handle 1 or 0. defaults to 0
         options.signature = '1';
     }
@@ -496,10 +496,10 @@ exports.newPost = async function (options, callback) {
             let possibleError = that.parseErrorMessage(response);
             //success is errormessgae 'redirect_postthanks'
             //reports threadid and postid
-            if(
+            if (
                 possibleError === 'redirect_postthanks'
                 && response.hasOwnProperty('show')
-            ){
+            ) {
                 if (callback) callback(response.show);
                 resolve(response.show);
             } else {
@@ -531,7 +531,7 @@ exports.editPost = function (options, callback) {
     options = options || {};
     options.postid = options.postid || ''; //required
     options.message = options.message || ''; //required
-    if(options.signature === true){
+    if (options.signature === true) {
         //System only handle 1 or 0. defaults to 0
         options.signature = '1';
     }
@@ -544,7 +544,7 @@ exports.editPost = function (options, callback) {
             });
             let possibleError = that.parseErrorMessage(response);
             //success is errormessgae 'redirect_editthanks'
-            if(possibleError === 'redirect_editthanks'){
+            if (possibleError === 'redirect_editthanks') {
                 if (callback) callback({postid: options.postid});
                 resolve({postid: options.postid});
             } else {
@@ -584,10 +584,10 @@ exports.deletePost = function (options, callback) {
             });
             let possibleError = that.parseErrorMessage(response);
             //unknown response
-            if(
+            if (
                 possibleError === 'redirect_deletepost'
                 && response.hasOwnProperty('show')
-            ){
+            ) {
                 console.log('response', response);
                 if (callback) callback(response.show);
                 resolve(response.show);
@@ -630,10 +630,10 @@ exports.newThread = function (options, callback) {
             let possibleError = that.parseErrorMessage(response);
             //success is errormessgae 'redirect_postthanks'
             //reports threadid and postid
-            if(
+            if (
                 possibleError === 'redirect_postthanks'
                 && response.hasOwnProperty('show')
-            ){
+            ) {
                 if (callback) callback(response.show);
                 resolve(response.show);
             } else {

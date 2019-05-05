@@ -1,16 +1,16 @@
+"use strict";
 const md5 = require('js-md5'),
     os = require('os'),
     request = require('request'),
     _ = require('underscore'),
     Forum = require('./Forum'),
-    Post = require('./Post'),
+    //Post = require('./Post'),
     Thread = require('./Thread');
 
 /**
  *
- * @type {VBApi}
  */
-module.exports = class VBApi {
+class VBApi {
     /**
      * Initialize a vb api connection .This needs to be called for the first time
      * @param options
@@ -31,52 +31,81 @@ module.exports = class VBApi {
             sessionHash: '', // Unused?
             apiClientId: '',
             secret: '',
-            inited: false
+            inited: false,
+            error: null
         };
 
+        /**
+         * @typedef UserVars
+         * @property {string} dbsessionhash
+         * @property {number} userid
+         * @property {string} username
+         * @property {boolean} loggedIn
+         * @type {UserVars}
+         */
         this.userSessionVars = {
+            dbsessionhash: '',
             username: '',
             userid: 0,
             loggedIn: false
         };
 
-        this.initialOptions = options || {};
+        /** @private */
+        this.__waitingForInitializationCallback = function () {}; // A blank callback to be filled in
+
+        this.__initialize(options || {})
 
     }
 
     /**
      * Initialize a vb api connection. This needs to be called for the first time
      * @param {{}} options
+     * @param {string} options.apiUrl
+     * @param {string} options.apiKey
+     * @param {string} options.platformName
+     * @param {string} options.platformVersion
+     * @private
      */
-    initialize(options) {
+    __initialize(options) {
         let that = this;
         return new Promise(async function (resolve, reject) {
             if (
-                !that.initialOptions.hasOwnProperty('apiUrl')
-                || !that.initialOptions.hasOwnProperty('apiKey')
-                || !that.initialOptions.hasOwnProperty('platformName')
-                || !that.initialOptions.hasOwnProperty('platformVersion')
-                || that.initialOptions.platformName === ''
-                || that.initialOptions.platformVersion === ''
+                !options.hasOwnProperty('apiUrl')
+                || !options.hasOwnProperty('apiKey')
+                || !options.hasOwnProperty('platformName')
+                || !options.hasOwnProperty('platformVersion')
+                || options.platformName === ''
+                || options.platformVersion === ''
             ) {
-                reject('apiInit(): Initialization requires a `apiUrl`, `apiKey`, `platformName`, and `platformVersion`');
+                that.clientSessionVars.error = 'apiInit(): Initialization requires a `apiUrl`, `apiKey`, `platformName`, and `platformVersion`';
+                that.__waitingForInitializationCallback(false);
+                reject(that.clientSessionVars.error);
             } else {
 
                 let regex_url = /^(?:([A-Za-z]+):)?(\/{0,3})([0-9.\-A-Za-z]+)(?::(\d+))?(?:\/([^?#]*))?(?:\?([^#]*))?(?:#(.*))?$/;
-                let url_parts = regex_url.exec(that.initialOptions.apiUrl);
+                let url_parts = regex_url.exec(options.apiUrl);
                 that.defaultVars.baseUrl = that.defaultVars.baseUrl || url_parts[1] + ':' + url_parts[2] + url_parts[3] + '/';
-                that.defaultVars.apiUrl = that.defaultVars.apiUrl || that.initialOptions.apiUrl;
-                that.defaultVars.apiKey = that.defaultVars.apiKey || that.initialOptions.apiKey;
-                that.defaultVars.uniqueId = that.defaultVars.uniqueId || md5(that.defaultVars.clientName + that.defaultVars.clientVersion + that.initialOptions.platformName + that.initialOptions.platformVersion + that.constructor.getMacAddress() + new Date().getTime());
+                that.defaultVars.apiUrl = that.defaultVars.apiUrl || options.apiUrl;
+                that.defaultVars.apiKey = that.defaultVars.apiKey || options.apiKey;
+                that.defaultVars.uniqueId = that.defaultVars.uniqueId || md5(that.defaultVars.clientName + that.defaultVars.clientVersion + options.platformName + options.platformVersion + that.constructor.getMacAddress() + new Date().getTime());
 
                 try {
+                    /**
+                     *
+                     * @type {{}}
+                     * @property {string} apiversion
+                     * @property {string} apiaccesstoken
+                     * @property {string} sessionhash
+                     * @property {string} apiclientid
+                     * @property {string} secret
+                     */
                     let response = await that.callMethod({
                         method: 'api_init',
                         params: {
                             clientname: that.defaultVars.clientName,
                             clientversion: that.defaultVars.clientVersion,
-                            platformname: that.initialOptions.platformName,
-                            platformversion: that.initialOptions.platformVersion,
+                            platformname: options.platformName,
+                            platformversion: options.platformVersion,
                             uniqueid: that.defaultVars.uniqueId
                         }
                     });
@@ -100,16 +129,71 @@ module.exports = class VBApi {
                         that.clientSessionVars.apiClientId = response.apiclientid;
                         that.clientSessionVars.secret = response.secret;
                         that.clientSessionVars.inited = true;
+
+                        that.__waitingForInitializationCallback(true);
                         resolve(that);
                     } else {
-                        let error = that.parseErrorMessage(response) || 'TODO ERROR (api connection did not return a session)';
-                        reject(error);
+                        that.clientSessionVars.error = that.constructor.parseErrorMessage(response) || 'TODO ERROR (api connection did not return a session)';
+                        that.__waitingForInitializationCallback(false);
+                        reject(that.clientSessionVars.error);
                     }
                 } catch (e) {
+                    that.clientSessionVars.error = e;
+                    that.__waitingForInitializationCallback(false);
                     reject(e);
                 }
             }
         });
+    }
+
+    /**
+     * Will return after #initialize() is complete. Otherwise may reject() after 15 second timeout
+     * @param {number=15} waitTime
+     * @returns {Promise<void>}
+     * @fulfill {void}
+     * @reject {string} - Error Reason
+     */
+    waitForInitialization(waitTime) {
+        let that = this;
+        waitTime = waitTime || 15;
+        return new Promise(async function (resolve, reject) {
+            if (that.clientSessionVars.inited === true) {
+                resolve();
+            } else if (that.clientSessionVars.error !== null) {
+                reject(that.clientSessionVars.error);
+            }
+
+            /**
+             * @type {number}
+             * @private
+             */
+            that.__waitingForInitializationTimeout = setTimeout(
+                function () {
+                    that.__waitingForInitializationCallback = function(){}; // Set back to a blank function
+                    if(that.clientSessionVars.inited === true){
+                        resolve();
+                    } else {
+                        reject('Connection could not be achieved due to timed out', that.clientSessionVars.error);
+                    }
+
+                },
+                waitTime * 1000 // 1 minute timeout
+            );
+            /**
+             * @param {boolean=true} success
+             * @private
+             */
+            that.__waitingForInitializationCallback = function (success) {
+                if(that.__waitingForInitializationTimeout){
+                    clearTimeout(that.__waitingForInitializationTimeout);
+                }
+                if(success === false) {
+                    reject(that.clientSessionVars.error);
+                } else {
+                    resolve();
+                }
+            };
+        })
     }
 
     /**
@@ -119,13 +203,15 @@ module.exports = class VBApi {
      * @param {object<string,string>} [options.params={}] - Optional parameter variables
      * @param {?object<string,string>} [options.cookies] - Optional cookie variables
      * @returns {Promise<{}>}
+     * @fulfill {{}}
+     * @reject {string} - Error Reason
      */
     callMethod(options) {
         let that = this;
         let sign = true;
         options = options || {};
         options.params = options.params || {};
-        return new Promise(function (resolve, reject) {
+        return new Promise(async function (resolve, reject) {
             if (!options.method) {
                 reject('callMethod(): requires a supplied method');
                 return;
@@ -134,6 +220,14 @@ module.exports = class VBApi {
             // Sign all calls except for api_init
             if (options.method === 'api_init') sign = false;
 
+            // await a valid session before continuing (skipping waiting on __initialize())
+            if (sign === true) {
+                try {
+                    await that.waitForInitialization();
+                } catch (e) {}
+            }
+
+            // Gather our sessions variables together
             let reqParams = {
                 api_m: options.method,
                 api_c: that.clientSessionVars.apiClientId, //clientId
@@ -147,10 +241,12 @@ module.exports = class VBApi {
                 if (that.clientSessionVars.inited) {
                     reqParams.api_sig = md5(that.clientSessionVars.apiAccessToken + that.clientSessionVars.apiClientId + that.clientSessionVars.secret + that.defaultVars.apiKey);
                 } else {
+                    reject('callMethod(): requires initialization. Not initialized');
                     return;
                 }
             }
 
+            // Create a valid http Request
             let reqOptions = {
                 url: that.defaultVars.apiUrl,
                 formData: reqParams,
@@ -193,7 +289,9 @@ module.exports = class VBApi {
      * @param {object} options
      * @param {string} options.username - Username
      * @param {string} options.password - clear text password TODO need to secure this more?
-     * @returns {Promise<{}>} TODO add typedef for userVars
+     * @returns {Promise<UserVars>}
+     * @fulfill {UserVars}
+     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
     async login(options) {
         options = options || {};
@@ -207,7 +305,9 @@ module.exports = class VBApi {
      * @param {object} options
      * @param {string} options.username - Username
      * @param {string} options.password - MD5 hashed password TODO need to secure this more?
-     * @returns {Promise<{}>} TODO add typedef for userVars
+     * @returns {Promise<UserVars>}
+     * @fulfill {UserVars}
+     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
     async loginMD5(options) {
         let that = this;
@@ -332,6 +432,8 @@ module.exports = class VBApi {
     /**
      * List every Forum and sub forum available to the user.
      * @returns {Promise<Forum[]>} - Array of Forum objects
+     * @fulfill {Forum[]}
+     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
     getForums() {
         let that = this;
@@ -363,6 +465,8 @@ module.exports = class VBApi {
      * @param {number} options.forumid - Forum id
      * TODO note additional options
      * @returns {Promise<Forum>} - Returns a Forum object
+     * @fulfill {Forum}
+     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
     getForum(options) {
         let that = this;
@@ -395,6 +499,8 @@ module.exports = class VBApi {
      * @param {number} options.threadid - Thread id
      * TODO note additional options
      * @returns {Promise<Thread>} - Returns a Thread object
+     * @fulfill {Thread}
+     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
     getThread(options) {
         let that = this;
@@ -428,7 +534,9 @@ module.exports = class VBApi {
      * @param {string} options.message - Post Message
      * @param {boolean=} options.signature  - Optionally append your signature
      * TODO note additional options
-     * @returns {Promise<Object || String>} - Returns a unhandled response currently
+     * @returns {Promise<*>} - Returns a unhandled response currently
+     * @fulfill {*}
+     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
     async newPost(options) {
         let that = this;
@@ -447,7 +555,7 @@ module.exports = class VBApi {
                     method: 'newreply_postreply',
                     params: options
                 });
-                let possibleError = that.parseErrorMessage(response);
+                let possibleError = that.constructor.parseErrorMessage(response);
                 //success is errormessgae 'redirect_postthanks'
                 //reports threadid and postid
                 if (
@@ -472,7 +580,9 @@ module.exports = class VBApi {
      * @param {string=} options.reason - Reason for editing
      * @param {boolean=} options.signature - Optionally append your signature
      * TODO note additional options
-     * @returns {Promise<Object || String>} - Returns a unhandled response currently
+     * @returns {Promise<*>} - Returns a unhandled response currently
+     * @fulfill {*}
+     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
     editPost(options) {
         let that = this;
@@ -511,7 +621,9 @@ module.exports = class VBApi {
      * @param {number} options.threadid - Thread id
      * @param {string=} options.reason - Reason for deleting
      * TODO note additional options
-     * @returns {Promise<Object || String>} - Returns a unhandled response currently
+     * @returns {Promise<*>} - Returns a unhandled response currently
+     * @fulfill {*}
+     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
     deletePost(options) {
         let that = this;
@@ -548,7 +660,9 @@ module.exports = class VBApi {
      * @param {string} options.subject - Post/Thread Subject
      * @param {string} options.message - Post Message
      * TODO note additional options
-     * @returns {Promise<Object || String>} - Returns a unhandled response currently
+     * @returns {Promise<*>} - Returns a unhandled response currently
+     * @fulfill {*}
+     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
     newThread(options) {
         let that = this;
@@ -584,7 +698,9 @@ module.exports = class VBApi {
      * TODO incomplete - does not seem to function yet
      * Attempts to close a specific Thread. Requires a user to have a 'inline mod' permissions
      * @param {number} threadid - Id of Thread to close
-     * @returns {Promise<Object || String>} - Returns a unhandled response currently
+     * @returns {Promise<*>} - Returns a unhandled response currently
+     * @fulfill {*}
+     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
     modCloseThread(threadid) {
         let that = this;
@@ -619,7 +735,9 @@ module.exports = class VBApi {
      * TODO incomplete - does not seem to function yet
      * Attempts to open a specific Thread. Requires a user to have a 'inline mod' permissions
      * @param {number} threadid - Id of Thread to open
-     * @returns {Promise<Object || String>} - Returns a unhandled response currently
+     * @returns {Promise<*>} - Returns a unhandled response currently
+     * @fulfill {*}
+     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
     modOpenThread(threadid) {
         let that = this;
@@ -654,7 +772,9 @@ module.exports = class VBApi {
      * TODO incomplete - does not seem to function yet
      * Attempts to delete a specific Thread. Requires a user to have a 'inline mod' permissions
      * @param {number} threadid - Id of Thread to close
-     * @returns {Promise<Object || String>} - Returns a unhandled response currently
+     * @returns {Promise<*>} - Returns a unhandled response currently
+     * @fulfill {*}
+     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
     modDeleteThread(threadid) {
         let that = this;
@@ -684,4 +804,6 @@ module.exports = class VBApi {
             }
         });
     }
-};
+}
+
+module.exports = VBApi;

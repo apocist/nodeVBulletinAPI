@@ -1,3 +1,4 @@
+"use strict";
 /**
  *
  * @param {object} rawData

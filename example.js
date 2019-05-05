@@ -1,29 +1,28 @@
+"use strict";
 const VBApi = require('./nodeVBulletinAPI');
 
-const config = {
-    apiUrl: 'http://google.com/forum/api.php',
-    apiKey: 'xXxXxXxX',
-    platformName: 'testing script',
-    platformVersion: '1'
-};
+example();
 
-const user_config = {
-    username: 'username',
-    password: 'password' //login() uses cleartext while loginMD5() uses md5 hashed password
-};
-
-startup();
-
-async function startup() {
+async function example() {
     try {
         // Let's connect to the server and start our session
-        let session = new VBApi(config);
-        session.initialize(); // FIXME should all happen on new
+        let session = new VBApi({
+            apiUrl: 'http://google.com/forum/api.php',
+            apiKey: 'xXxXxXxX',
+            platformName: 'testing script',
+            platformVersion: '1'
+        });
 
         // To use more command, let's log our session in
-        console.log('logged in:', await session.login(user_config));
+        let userData = await session.login({
+            username: 'username',
+            password: 'password' //login() uses cleartext while loginMD5() uses md5 hashed password
+        });
 
-        //Some more additional actions we can take:
+        console.log('logged in:', userData);
+
+        // We're now also logged in (login() would have rejected otherwise) , we should be able to do much more
+        // HEre are some more additional actions we can take:
 
         //console.log('got forum list:', await session.getForums());
 
@@ -40,15 +39,16 @@ async function startup() {
             message: 'Wiggle new testings~!'
         });
         console.log('posted post:', data);
+        */
 
+        /*
+        let data;
         data = await session.newThread({
             forumid: 565,
             subject: 'new Thread test',
             message: 'Just testing again!'
         });
         console.log('posted thread:', data);
-
-
         */
 
     } catch (e) {

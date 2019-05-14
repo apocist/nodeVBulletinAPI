@@ -18,7 +18,7 @@ class Thread {
      * @property {string} thread.threadid
      * @property {string} thread.title
      * @property {string} thread.threadtitle
-     * @property {[]} postbits
+     * @property {RawPostData[]} postbits
      */
 
     /**

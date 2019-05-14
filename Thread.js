@@ -1,14 +1,24 @@
 "use strict";
 const Post = require('./Post');
 
+/**
+ * @type {Class}
+ * @property {number} forumId
+ * @property {string} forumTitle
+ * @property {number} threadId
+ * @property {string} title
+ * @property {Post[]} posts
+ */
 class Thread {
     /**
      * @typedef RawThreadData
-     * @property {number} forumId
-     * @property {string} forumTitle
-     * @property {number} threadId
-     * @property {string} title
-     * @property {Post[]} posts
+     * @property {object} thread
+     * @property {string} thread.forumid
+     * @property {string} thread.forumtitle
+     * @property {string} thread.threadid
+     * @property {string} thread.title
+     * @property {string} thread.threadtitle
+     * @property {[]} postbits
      */
 
     /**
@@ -16,11 +26,15 @@ class Thread {
      */
     constructor(rawData) {
         this.rawData = rawData;
-        this.parseData();
-        this.cleanup();
+        this.__parseData();
+        this.__cleanup();
     }
 
-    parseData() {
+    /**
+     *
+     * @private
+     */
+    __parseData() {
         if (this.rawData) {
             //TODO need to specify if its fully fetched
             let rawData = this.rawData;
@@ -52,11 +66,14 @@ class Thread {
                     }
                 }
             }
-
         }
     }
 
-    cleanup() {
+    /**
+     *
+     * @private
+     */
+    __cleanup() {
         delete (this.rawData);
     }
 }

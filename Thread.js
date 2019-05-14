@@ -11,8 +11,8 @@ const Post = require('./Post');
  */
 class Thread {
     /**
-     * @typedef RawThreadData
-     * @property {object} thread
+     * @typedef {Object} RawThreadData
+     * @property {Object} thread
      * @property {string} thread.forumid
      * @property {string} thread.forumtitle
      * @property {string} thread.threadid

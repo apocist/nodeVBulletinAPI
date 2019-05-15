@@ -2,7 +2,7 @@
   "name": "node-vbulletin-api",
   "author": "Apocist",
   "desciprtion": "nodejs API interface to communicate with VBulletin servers",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "license": "GPL-3.0",
   "private": false,
   "engines": {

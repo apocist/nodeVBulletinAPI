@@ -13,15 +13,23 @@ const md5 = require('js-md5'),
 class VBApi {
     /**
      * Initialize a vb api connection .This needs to be called for the first time
-     * @param options
+     * @param {string} apiUrl
+     * @param {string} apiKey
+     * @param {string} platformName
+     * @param {string} platformVersion
+     * @param {object=} options - A fallback to the old style config
+     * @param {string=} options.apiUrl
+     * @param {string=} options.apiKey
+     * @param {string=} options.platformName
+     * @param {string=} options.platformVersion
      */
-    constructor(options) {
+    constructor(apiUrl, apiKey, platformName, platformVersion, options) {
         this.defaultVars = {
             baseUrl: '', //Needed for cookie related commands
             apiUrl: '',
             apiKey: '',
             clientName: 'nodeVBulletinAPI',
-            clientVersion: '0.0.1',
+            clientVersion: '1.0.0',
             uniqueId: ''
         };
 
@@ -51,15 +59,30 @@ class VBApi {
         };
 
         /** @private */
-        this.__waitingForInitializationCallback = function () {}; // A blank callback to be filled in
+        this.__waitingForInitializationCallback = function () {
+        }; // A blank callback to be filled in
 
-        this.__initialize(options || {})
+        options = options || {};
+        if(!_.isEmpty(apiUrl) || !_.isEmpty(options.apiUrl)) {
+            options.apiUrl = apiUrl || options.apiUrl || {};
+        }
+        if(!_.isEmpty(apiKey) || !_.isEmpty(options.apiKey)) {
+            options.apiKey = apiKey || options.apiKey || {};
+        }
+        if(!_.isEmpty(platformName) || !_.isEmpty(options.platformName)) {
+            options.platformName = platformName || options.platformName || {};
+        }
+        if(!_.isEmpty(platformVersion) || !_.isEmpty(options.platformVersion)) {
+            options.platformVersion = platformVersion || options.platformVersion || {};
+        }
+
+        this.__initialize(options)
 
     }
 
     /**
      * Initialize a vb api connection. This needs to be called for the first time
-     * @param {{}} options
+     * @param {object} options
      * @param {string} options.apiUrl
      * @param {string} options.apiKey
      * @param {string} options.platformName
@@ -68,7 +91,9 @@ class VBApi {
      */
     __initialize(options) {
         let that = this;
-        return new Promise(async function (resolve, reject) {
+        //return new Promise(async function (resolve, reject) {
+        // Run itself as a self invoked promise that is awaited by nothing. callMethod shall wait until this is finished
+        (async function __initialize_self() {
             if (
                 !options.hasOwnProperty('apiUrl')
                 || !options.hasOwnProperty('apiKey')
@@ -79,7 +104,8 @@ class VBApi {
             ) {
                 that.clientSessionVars.error = 'apiInit(): Initialization requires a `apiUrl`, `apiKey`, `platformName`, and `platformVersion`';
                 that.__waitingForInitializationCallback(false);
-                reject(that.clientSessionVars.error);
+                // reject(that.clientSessionVars.error);
+                return that.clientSessionVars.error;
             } else {
 
                 let regex_url = /^(?:([A-Za-z]+):)?(\/{0,3})([0-9.\-A-Za-z]+)(?::(\d+))?(?:\/([^?#]*))?(?:\?([^#]*))?(?:#(.*))?$/;
@@ -131,19 +157,23 @@ class VBApi {
                         that.clientSessionVars.inited = true;
 
                         that.__waitingForInitializationCallback(true);
-                        resolve(that);
+                        // resolve(that);
+                        return that;
                     } else {
                         that.clientSessionVars.error = that.constructor.parseErrorMessage(response) || 'TODO ERROR (api connection did not return a session)';
                         that.__waitingForInitializationCallback(false);
-                        reject(that.clientSessionVars.error);
+                        // reject(that.clientSessionVars.error);
+                        return that.clientSessionVars.error;
                     }
                 } catch (e) {
                     that.clientSessionVars.error = e;
                     that.__waitingForInitializationCallback(false);
-                    reject(e);
+                    // reject(e);
+                    return e;
                 }
             }
-        });
+        }());
+        //});
     }
 
     /**
@@ -153,7 +183,7 @@ class VBApi {
      * @fulfill {void}
      * @reject {string} - Error Reason
      */
-    waitForInitialization(waitTime) {
+    async waitForInitialization(waitTime) {
         let that = this;
         waitTime = waitTime || 15;
         return new Promise(async function (resolve, reject) {
@@ -169,8 +199,9 @@ class VBApi {
              */
             that.__waitingForInitializationTimeout = setTimeout(
                 function () {
-                    that.__waitingForInitializationCallback = function(){}; // Set back to a blank function
-                    if(that.clientSessionVars.inited === true){
+                    that.__waitingForInitializationCallback = function () {
+                    }; // Set back to a blank function
+                    if (that.clientSessionVars.inited === true) {
                         resolve();
                     } else {
                         reject('Connection could not be achieved due to timed out', that.clientSessionVars.error);
@@ -184,10 +215,10 @@ class VBApi {
              * @private
              */
             that.__waitingForInitializationCallback = function (success) {
-                if(that.__waitingForInitializationTimeout){
+                if (that.__waitingForInitializationTimeout) {
                     clearTimeout(that.__waitingForInitializationTimeout);
                 }
-                if(success === false) {
+                if (success === false) {
                     reject(that.clientSessionVars.error);
                 } else {
                     resolve();
@@ -206,7 +237,7 @@ class VBApi {
      * @fulfill {{}}
      * @reject {string} - Error Reason
      */
-    callMethod(options) {
+    async callMethod(options) {
         let that = this;
         let sign = true;
         options = options || {};
@@ -224,7 +255,8 @@ class VBApi {
             if (sign === true) {
                 try {
                     await that.waitForInitialization();
-                } catch (e) {}
+                } catch (e) {
+                }
             }
 
             // Gather our sessions variables together
@@ -268,50 +300,59 @@ class VBApi {
                 reqOptions.jar = j;// Adds cookies to the request
             }
 
-            request.post(
-                reqOptions,
-                function (error, response, body) {
-                    if (!error && response.statusCode === 200) {
-                        resolve(JSON.parse(body));
-                    } else {
-                        //console.log('No response');
-                        reject('callMethod(): no response.');
+            try {
+                request.post(
+                    reqOptions,
+                    function (error, response, body) {
+                        if (!error && response.statusCode === 200) {
+                            resolve(JSON.parse(body));
+                        } else {
+                            //console.log('No response');
+                            reject('callMethod(): no response.');
+                        }
                     }
-                }
-            );
-
-
+                );
+            } catch (e) {
+                reject(e);
+            }
         });
     }
 
     /**
      * Attempts to log in a user.
-     * @param {object} options
-     * @param {string} options.username - Username
-     * @param {string} options.password - clear text password TODO need to secure this more?
+     * @param {string} username - Username
+     * @param {string} password - clear text password TODO need to secure this more?
+     * @param {object=} options
+     * @param {string=} options.username - Ignore, already required at username
+     * @param {string=} options.password - Ignore, already required at password
      * @returns {Promise<UserVars>}
      * @fulfill {UserVars}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    async login(options) {
+    async login(username, password, options) {
         options = options || {};
-        options.password = md5(options.password || '');
-        return await this.loginMD5(options);
+        options.username = username || options.username || '';
+        options.password = md5(password || options.password || '');
+        return await this.loginMD5('', '', options);
     }
 
     /**
      *
      * Attempts to log in a user. Requires the password to be pre md5 hashed.
-     * @param {object} options
-     * @param {string} options.username - Username
-     * @param {string} options.password - MD5 hashed password TODO need to secure this more?
+     * @param {string} username - Username
+     * @param {string} password - MD5 hashed password TODO need to secure this more?
+     * @param {object=} options
+     * @param {string=} options.username - Ignore, already required at username
+     * @param {string=} options.password - Ignore, already required at password
      * @returns {Promise<UserVars>}
      * @fulfill {UserVars}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    async loginMD5(options) {
+    async loginMD5(username, password, options) {
         let that = this;
         options = options || {};
+        options.username = username || options.username || {};
+        options.password = password || options.password || {};
         return new Promise(async function (resolve, reject) {
             try {
                 let response = await that.callMethod(
@@ -353,30 +394,39 @@ class VBApi {
 
     /**
      * Attempts to log the user out.
-     * @returns {boolean || string} - Returns true on success, otherwise error code is returned
+     * @returns {Promise<boolean>} - Returns true on success, otherwise error code is rejected
+     * @fulfill {boolean}
+     * @reject {string} - Error Reason
      */
     async logout() {
         let that = this;
-        let error;
-        try {
-            let response = await that.callMethod({
-                method: 'login_logout'
-            });
-            error = that.constructor.parseErrorMessage(response);
-            if (response.session) {
-                that.userSessionVars = response.session;
-                if (error === 'cookieclear') {
-                    that.userSessionVars.username = '';
-                    that.userSessionVars.loggedIn = false;
+        return new Promise(async function (resolve, reject) {
+            let error;
+            try {
+                let response = await that.callMethod({
+                    method: 'login_logout'
+                });
+                error = that.constructor.parseErrorMessage(response);
+                if (response.session) {
+                    that.userSessionVars = response.session;
+                    if (error === 'cookieclear') {
+                        that.userSessionVars.username = '';
+                        that.userSessionVars.loggedIn = false;
+                    }
                 }
+                if (error === 'cookieclear') {
+                    error = null;
+                }
+            } catch (e) {
+                reject(e);
             }
-            if (error === 'cookieclear') {
-                error = null;
+            return error || true;
+            if (error) {
+                reject(error);
+            } else {
+                resolve(true)
             }
-        } catch (e) {
-            error = e.message;
-        }
-        return error || true;
+        });
     }
 
     /**
@@ -435,7 +485,7 @@ class VBApi {
      * @fulfill {Forum[]}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    getForums() {
+    async getForums() {
         let that = this;
         return new Promise(async function (resolve, reject) {
             let forums = [];
@@ -461,17 +511,18 @@ class VBApi {
 
     /**
      * List detailed info about a forum and it's sub-forums and threads
-     * @param {object} options
-     * @param {number} options.forumid - Forum id
+     * @param {number} forumId - Forum id
+     * @param {object=} options - Secondary Options
+     * @param {number=} options.forumid - Ignore, already required at forumId
      * TODO note additional options
      * @returns {Promise<Forum>} - Returns a Forum object
      * @fulfill {Forum}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    getForum(options) {
+    async getForum(forumId, options) {
         let that = this;
         options = options || {};
-        options.forumid = options.forumid || ''; //required
+        options.forumid = forumId || options.forumid || ''; //required
 
         return new Promise(async function (resolve, reject) {
             let forum;
@@ -495,17 +546,18 @@ class VBApi {
 
     /**
      * List detailed information about a Thread and it's Posts
-     * @param {object} options
-     * @param {number} options.threadid - Thread id
+     * @param {number} threadId - Thread id
+     * @param {object=} options - Secondary Options
+     * @param {number=} options.threadid - Ignore, already required at threadId
      * TODO note additional options
      * @returns {Promise<Thread>} - Returns a Thread object
      * @fulfill {Thread}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    getThread(options) {
+    async getThread(threadId, options) {
         let that = this;
         options = options || {};
-        options.threadid = options.threadid || ''; //required
+        options.threadid = threadId || options.threadid || ''; //required
 
         return new Promise(async function (resolve, reject) {
             let thread;
@@ -529,27 +581,28 @@ class VBApi {
 
     /**
      * Attempts to submit a new Post into a specified Thread
-     * @param {object} options
-     * @param {number} options.threadid - Thread id
-     * @param {string} options.message - Post Message
+     * @param {number} threadId - Thread id
+     * @param {string} message - Post Message
+     * @param {object=} options
      * @param {boolean=} options.signature  - Optionally append your signature
+     * @param {number=} options.threadid - Ignore, already required at threadId
+     * @param {string=} options.message - Ignore, already required at message
      * TODO note additional options
      * @returns {Promise<*>} - Returns a unhandled response currently
      * @fulfill {*}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    async newPost(options) {
+    async newPost(threadId, message, options) {
         let that = this;
         options = options || {};
-        options.threadid = options.threadid || ''; //required
-        options.message = options.message || ''; //required
+        options.threadid = threadId || options.threadid || ''; //required
+        options.message = message || options.message || ''; //required
         if (options.signature === true) {
             //System only handle 1 or 0. defaults to 0
             options.signature = '1';
         }
 
         return new Promise(async function (resolve, reject) {
-
             try {
                 let response = await that.callMethod({
                     method: 'newreply_postreply',
@@ -557,6 +610,7 @@ class VBApi {
                 });
                 let possibleError = that.constructor.parseErrorMessage(response);
                 //success is errormessgae 'redirect_postthanks'
+                //error 'threadclosed' if thread is closed. FIXME does not error
                 //reports threadid and postid
                 if (
                     possibleError === 'redirect_postthanks'
@@ -574,21 +628,23 @@ class VBApi {
 
     /**
      * Attempts to edit an existing Post
-     * @param {object} options
-     * @param {number} options.postid - Post id
-     * @param {string} options.message - Post Message
+     * @param {number} postId - Post id
+     * @param {string} message - Post Message
+     * @param {object=} options
      * @param {string=} options.reason - Reason for editing
      * @param {boolean=} options.signature - Optionally append your signature
+     * @param {number=} options.postid - Ignore, already required at postId
+     * @param {string=} options.message - Ignore, already required at message
      * TODO note additional options
      * @returns {Promise<*>} - Returns a unhandled response currently
      * @fulfill {*}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    editPost(options) {
+    async editPost(postId, message, options) {
         let that = this;
         options = options || {};
-        options.postid = options.postid || ''; //required
-        options.message = options.message || ''; //required
+        options.postid = postId || options.postid || ''; //required
+        options.message = message || options.message || ''; //required
         if (options.signature === true) {
             //System only handle 1 or 0. defaults to 0
             options.signature = '1';
@@ -616,19 +672,22 @@ class VBApi {
     /**
      * TODO untested - does not seem to function yet
      * Attempts to delete an existing Post
-     * @param {object} options
-     * @param {number} options.postid - Post id
-     * @param {number} options.threadid - Thread id
+     * @param {number} postId - Post id
+     * @param {number} threadId - Thread id
+     * @param {object=} options
      * @param {string=} options.reason - Reason for deleting
+     * @param {number=} options.postid - Ignore, already required at postId
+     * @param {number=} options.threadid - Ignore, already required at threadId
      * TODO note additional options
      * @returns {Promise<*>} - Returns a unhandled response currently
      * @fulfill {*}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    deletePost(options) {
+    async deletePost(postId, threadId, options) {
         let that = this;
         options = options || {};
-        options.postid = options.postid || ''; //required
+        options.postid = postId || options.postid || ''; //required
+        options.threadid = threadId || options.threadid || ''; // TODO required????
 
         return new Promise(async function (resolve, reject) {
             try {
@@ -654,22 +713,31 @@ class VBApi {
     }
 
     /**
-     * Attempts to submit a new Thread into a specified Forum
-     * @param {object} options
-     * @param {number} options.forumid - Forum Id
-     * @param {string} options.subject - Post/Thread Subject
-     * @param {string} options.message - Post Message
+     * Attempts to submit a new Thread into a specified Forum. This will also be considered the first Post
+     * @param {number} forumId - Forum Id
+     * @param {string} subject - Post/Thread Subject
+     * @param {string} message - Post Message
+     * @param {object=} options
+     * @param {boolean=} options.signature - Optionally append your signature
+     * @param {number=} options.forumid - Ignore, already required at postId
+     * @param {string=} options.subject - Ignore, already required at postId
+     * @param {string=} options.message - Ignore, already required at postId
      * TODO note additional options
      * @returns {Promise<*>} - Returns a unhandled response currently
      * @fulfill {*}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    newThread(options) {
+    async newThread(forumId, subject, message, options) {
         let that = this;
         options = options || {};
-        options.forumid = options.forumid || ''; //required
-        options.subject = options.subject || ''; //required
-        options.message = options.message || ''; //required
+        options.forumid = forumId || options.forumid || ''; //required
+        options.subject = subject || options.subject || ''; //required
+        options.message = message || options.message || ''; //required
+
+        if (options.signature === true) {
+            //System only handle 1 or 0. defaults to 0
+            options.signature = '1';
+        }
 
         return new Promise(async function (resolve, reject) {
             try {
@@ -697,17 +765,17 @@ class VBApi {
     /**
      * TODO incomplete - does not seem to function yet
      * Attempts to close a specific Thread. Requires a user to have a 'inline mod' permissions
-     * @param {number} threadid - Id of Thread to close
+     * @param {number} threadId - Id of Thread to close
      * @returns {Promise<*>} - Returns a unhandled response currently
      * @fulfill {*}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    modCloseThread(threadid) {
+    async modCloseThread(threadId) {
         let that = this;
         let cookies = {};
-        if (threadid) {
+        if (threadId) {
             //TODO multiple ids are delimited with a '-'. eg: 123-345-456
-            cookies.vbulletin_inlinethread = threadid;
+            cookies.vbulletin_inlinethread = threadId;
         }
         return new Promise(async function (resolve, reject) {
             try {
@@ -734,17 +802,17 @@ class VBApi {
     /**
      * TODO incomplete - does not seem to function yet
      * Attempts to open a specific Thread. Requires a user to have a 'inline mod' permissions
-     * @param {number} threadid - Id of Thread to open
+     * @param {number} threadId - Id of Thread to open
      * @returns {Promise<*>} - Returns a unhandled response currently
      * @fulfill {*}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    modOpenThread(threadid) {
+    async modOpenThread(threadId) {
         let that = this;
         let cookies = {};
-        if (threadid) {
+        if (threadId) {
             //TODO multiple ids are delimited with a '-'. eg: 123-345-456
-            cookies.vbulletin_inlinethread = threadid;
+            cookies.vbulletin_inlinethread = threadId;
         }
         return new Promise(async function (resolve, reject) {
             try {
@@ -771,17 +839,17 @@ class VBApi {
     /**
      * TODO incomplete - does not seem to function yet
      * Attempts to delete a specific Thread. Requires a user to have a 'inline mod' permissions
-     * @param {number} threadid - Id of Thread to close
+     * @param {number} threadId - Id of Thread to close
      * @returns {Promise<*>} - Returns a unhandled response currently
      * @fulfill {*}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    modDeleteThread(threadid) {
+    async modDeleteThread(threadId) {
         let that = this;
         let cookies = {};
-        if (threadid) {
+        if (threadId) {
             //TODO multiple ids are delimited with a '-'. eg: 123-345-456
-            cookies.vbulletin_inlinethread = threadid;
+            cookies.vbulletin_inlinethread = threadId;
         }
         return new Promise(async function (resolve, reject) {
             try {

@@ -2,18 +2,18 @@
   "name": "node-vbulletin-api",
   "author": "Apocist",
   "desciprtion": "nodejs API interface to communicate with VBulletin servers",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "license": "GPL-3.0",
   "private": false,
   "engines": {
-    "node": ">=6"
+    "node": ">=12"
   },
   "scripts": {},
   "main": "nodeVBulletinAPI.js",
   "dependencies": {
-    "js-md5": "^0.7.2",
-    "request": "^2.83.0",
-    "underscore": "^1.8.3"
+    "js-md5": "^0.7.3",
+    "request": "^2.88.0",
+    "underscore": "^1.9.1"
   },
   "repository": {
     "type": "git",

@@ -4,8 +4,10 @@ const md5 = require('js-md5'),
     request = require('request'),
     _ = require('underscore'),
     Forum = require('./Forum'),
+    Member = require('./Member'),
     //Post = require('./Post'),
-    Thread = require('./Thread');
+    Thread = require('./Thread'),
+    {version} = require('./package.json');
 
 /**
  *
@@ -29,7 +31,7 @@ class VBApi {
             apiUrl: '',
             apiKey: '',
             clientName: 'nodeVBulletinAPI',
-            clientVersion: '1.0.0',
+            clientVersion: version,
             uniqueId: ''
         };
 
@@ -63,16 +65,16 @@ class VBApi {
         }; // A blank callback to be filled in
 
         options = options || {};
-        if(!_.isEmpty(apiUrl) || !_.isEmpty(options.apiUrl)) {
+        if (!_.isEmpty(apiUrl) || !_.isEmpty(options.apiUrl)) {
             options.apiUrl = apiUrl || options.apiUrl || {};
         }
-        if(!_.isEmpty(apiKey) || !_.isEmpty(options.apiKey)) {
+        if (!_.isEmpty(apiKey) || !_.isEmpty(options.apiKey)) {
             options.apiKey = apiKey || options.apiKey || {};
         }
-        if(!_.isEmpty(platformName) || !_.isEmpty(options.platformName)) {
+        if (!_.isEmpty(platformName) || !_.isEmpty(options.platformName)) {
             options.platformName = platformName || options.platformName || {};
         }
-        if(!_.isEmpty(platformVersion) || !_.isEmpty(options.platformVersion)) {
+        if (!_.isEmpty(platformVersion) || !_.isEmpty(options.platformVersion)) {
             options.platformVersion = platformVersion || options.platformVersion || {};
         }
 
@@ -666,6 +668,40 @@ class VBApi {
             } catch (e) {
                 reject(e);
             }
+        });
+    }
+
+    /**
+     * Attempts to retrieve data about a specific user found by username
+     * @param {string} username - Username
+     * @param {object=} options - Secondary Options
+     * @param {string=} options.username - Ignore, already required at username
+     * @returns {Promise<Member>} - Returns a Member object
+     * @fulfill {Member}
+     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     */
+    async getMember(username, options) {
+        let that = this;
+        options = options || {};
+        options.username = username || options.username || ''; //required
+
+        return new Promise(async function (resolve, reject) {
+            let thread;
+            try {
+                let response = await that.callMethod({
+                    method: 'member',
+                    params: options
+                });
+                if (
+                    response
+                    && response.hasOwnProperty('response')
+                ) {
+                    thread = new Member(response.response);
+                }
+            } catch (e) {
+                reject(e);
+            }
+            resolve(thread);
         });
     }
 

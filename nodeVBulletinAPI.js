@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 const md5 = require('js-md5'),
     os = require('os'),
     request = require('request'),

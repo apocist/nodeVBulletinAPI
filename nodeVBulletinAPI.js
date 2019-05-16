@@ -4,6 +4,7 @@ const md5 = require('js-md5'),
     request = require('request'),
     _ = require('underscore'),
     Forum = require('./Forum'),
+    Member = require('./Member'),
     //Post = require('./Post'),
     Thread = require('./Thread');
 
@@ -666,6 +667,40 @@ class VBApi {
             } catch (e) {
                 reject(e);
             }
+        });
+    }
+
+    /**
+     * Attempts to retrieve data about a specific user found by username
+     * @param {string} username - Username
+     * @param {object=} options - Secondary Options
+     * @param {string=} options.username - Ignore, already required at username
+     * @returns {Promise<Member>} - Returns a Member object
+     * @fulfill {Member}
+     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     */
+    async getMember(username, options) {
+        let that = this;
+        options = options || {};
+        options.username = username || options.username || ''; //required
+
+        return new Promise(async function (resolve, reject) {
+            let thread;
+            try {
+                let response = await that.callMethod({
+                    method: 'member',
+                    params: options
+                });
+                if (
+                    response
+                    && response.hasOwnProperty('response')
+                ) {
+                    thread = new Member(response.response);
+                }
+            } catch (e) {
+                reject(e);
+            }
+            resolve(thread);
         });
     }
 

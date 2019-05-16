@@ -27,6 +27,8 @@ async function example() {
 
         //console.log('got thread:', await session.getThread(44740));
 
+        //console.log('got thread:', await session.getMember('apocist'));
+
         //console.log('closed thread:', await session.modCloseThread(44740));
 
         /*

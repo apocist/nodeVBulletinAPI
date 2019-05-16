@@ -6,7 +6,8 @@ const md5 = require('js-md5'),
     Forum = require('./Forum'),
     Member = require('./Member'),
     //Post = require('./Post'),
-    Thread = require('./Thread');
+    Thread = require('./Thread'),
+    {version} = require('./package.json');
 
 /**
  *
@@ -30,7 +31,7 @@ class VBApi {
             apiUrl: '',
             apiKey: '',
             clientName: 'nodeVBulletinAPI',
-            clientVersion: '1.0.0',
+            clientVersion: version,
             uniqueId: ''
         };
 
@@ -64,16 +65,16 @@ class VBApi {
         }; // A blank callback to be filled in
 
         options = options || {};
-        if(!_.isEmpty(apiUrl) || !_.isEmpty(options.apiUrl)) {
+        if (!_.isEmpty(apiUrl) || !_.isEmpty(options.apiUrl)) {
             options.apiUrl = apiUrl || options.apiUrl || {};
         }
-        if(!_.isEmpty(apiKey) || !_.isEmpty(options.apiKey)) {
+        if (!_.isEmpty(apiKey) || !_.isEmpty(options.apiKey)) {
             options.apiKey = apiKey || options.apiKey || {};
         }
-        if(!_.isEmpty(platformName) || !_.isEmpty(options.platformName)) {
+        if (!_.isEmpty(platformName) || !_.isEmpty(options.platformName)) {
             options.platformName = platformName || options.platformName || {};
         }
-        if(!_.isEmpty(platformVersion) || !_.isEmpty(options.platformVersion)) {
+        if (!_.isEmpty(platformVersion) || !_.isEmpty(options.platformVersion)) {
             options.platformVersion = platformVersion || options.platformVersion || {};
         }
 

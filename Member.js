@@ -91,22 +91,22 @@ class Member {
                     canBeFriend: 'canbefriend',
                 };
 
-                Object.keys(numberItems).forEach(function(key) {
-                    if(memberData.hasOwnProperty(numberItems[key])) {
+                Object.keys(numberItems).forEach(function (key) {
+                    if (memberData.hasOwnProperty(numberItems[key])) {
                         that[key] = parseInt(memberData[numberItems[key]]);
                     }
                 });
 
-                Object.keys(stringItems).forEach(function(key) {
-                    if(memberData.hasOwnProperty(stringItems[key])) {
+                Object.keys(stringItems).forEach(function (key) {
+                    if (memberData.hasOwnProperty(stringItems[key])) {
                         that[key] = memberData[stringItems[key]];
                     }
                 });
 
-                Object.keys(booleanItems).forEach(function(key) {
-                    if(memberData.hasOwnProperty(booleanItems[key])) {
+                Object.keys(booleanItems).forEach(function (key) {
+                    if (memberData.hasOwnProperty(booleanItems[key])) {
                         let bool = false;
-                        if(
+                        if (
                             memberData[booleanItems[key]] === '1'
                             || memberData[booleanItems[key]] === 1
                         ) {
@@ -118,24 +118,24 @@ class Member {
 
                 if (memberData.hasOwnProperty('onlinestatus')) {
                     let bool = false;
-                    if(
+                    if (
                         typeof memberData.onlinestatus === 'object'
                         && memberData.onlinestatus.hasOwnProperty('onlinestatus')
-                        &&  (
+                        && (
                             memberData.onlinestatus.onlinestatus === '1'
                             || memberData.onlinestatus.onlinestatus === 1
                         )
-                    ){
+                    ) {
                         bool = true;
                     }
                     that.onlineStatus = bool;
                 }
 
-                if(that.hasOwnProperty('joinDate')){
-                    that['joinDate'] = new Date(that['joinDate']*1000);
+                if (that.hasOwnProperty('joinDate')) {
+                    that['joinDate'] = new Date(that['joinDate'] * 1000);
                 }
-                if(that.hasOwnProperty('lastActivityTime')){
-                    that['lastActivityTime'] = new Date(that['lastActivityTime']*1000);
+                if (that.hasOwnProperty('lastActivityTime')) {
+                    that['lastActivityTime'] = new Date(that['lastActivityTime'] * 1000);
                 }
             }
         }

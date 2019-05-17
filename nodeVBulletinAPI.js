@@ -527,7 +527,7 @@ class VBApi {
         options.forumid = forumId || options.forumid || ''; //required
 
         return new Promise(async function (resolve, reject) {
-            let forum;
+            let forum = null;
             try {
                 let response = await that.callMethod({
                     method: 'forumdisplay',
@@ -542,7 +542,11 @@ class VBApi {
             } catch (e) {
                 reject(e);
             }
-            resolve(forum);
+            if (forum !== null) {
+                resolve(forum);
+            } else {
+                reject();
+            }
         });
     }
 
@@ -562,7 +566,7 @@ class VBApi {
         options.threadid = threadId || options.threadid || ''; //required
 
         return new Promise(async function (resolve, reject) {
-            let thread;
+            let thread = null;
             try {
                 let response = await that.callMethod({
                     method: 'showthread',
@@ -577,7 +581,11 @@ class VBApi {
             } catch (e) {
                 reject(e);
             }
-            resolve(thread);
+            if (thread !== null) {
+                resolve(thread);
+            } else {
+                reject();
+            }
         });
     }
 
@@ -686,7 +694,7 @@ class VBApi {
         options.username = username || options.username || ''; //required
 
         return new Promise(async function (resolve, reject) {
-            let thread;
+            let thread = null;
             try {
                 let response = await that.callMethod({
                     method: 'member',
@@ -701,7 +709,11 @@ class VBApi {
             } catch (e) {
                 reject(e);
             }
-            resolve(thread);
+            if (thread !== null) {
+                resolve(thread);
+            } else {
+                reject();
+            }
         });
     }
 
@@ -772,7 +784,7 @@ class VBApi {
 
         if (options.signature === true) {
             //System only handle 1 or 0. defaults to 0
-            options.signature = '1';
+            options.signature = '1'; // FIXME This didn't seem to work
         }
 
         return new Promise(async function (resolve, reject) {

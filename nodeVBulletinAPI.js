@@ -231,67 +231,63 @@ class VBApi {
         options = options || {};
         options.params = options.params || {};
         return new Promise(async function (resolve, reject) {
-            if (!options.method) {
-                reject('callMethod(): requires a supplied method');
-                return;
-            }
-
-            // Sign all calls except for api_init
-            if (options.method === 'api_init') {
-                sign = false;
-            }
-
-            // await a valid session before continuing (skipping waiting on __initialize())
-            if (sign === true) {
-                try {
-                    await that.waitForInitialization();
-                } catch (e) {
-                    // For some reason is waitForInitialization(), there's nothing to be done, ignore it
-                }
-            }
-
-            // Gather our sessions variables together
-            let reqParams = {
-                api_m: options.method,
-                api_c: that.clientSessionVars.apiClientId, //clientId
-                api_s: that.clientSessionVars.apiAccessToken, //apiAccessToken (may be empty)
-                api_v: that.clientSessionVars.apiVersion //api version
-            };
-            _.extend(reqParams, options.params); // Combine the arrays
-
-            if (sign === true) {
-                // Generate a signature to validate that we are authenticated
-                if (that.clientSessionVars.inited) {
-                    reqParams.api_sig = md5(that.clientSessionVars.apiAccessToken + that.clientSessionVars.apiClientId + that.clientSessionVars.secret + that.defaultVars.apiKey);
-                } else {
-                    reject('callMethod(): requires initialization. Not initialized');
+            try {
+                if (!options.method) {
+                    reject('callMethod(): requires a supplied method');
                     return;
                 }
-            }
 
-            // Create a valid http Request
-            let reqOptions = {
-                url: that.defaultVars.apiUrl,
-                formData: reqParams,
-                headers: {
-                    'User-Agent': that.defaultVars.clientName
+                // Sign all calls except for api_init
+                if (options.method === 'api_init') {
+                    sign = false;
                 }
-            };
 
-            // Some command require adding a cookie, we'll do that here
-            if (options.cookies) {
-                let j = request.jar();
-                for (let variable in options.cookies) {
-                    if (options.cookies.hasOwnProperty(variable)) {
-                        let cookieString = variable + '=' + options.cookies[variable];
-                        let cookie = request.cookie(cookieString);
-                        j.setCookie(cookie, that.defaultVars.baseUrl);
+                // await a valid session before continuing (skipping waiting on __initialize())
+                if (sign === true) {
+                    await that.waitForInitialization();
+                }
+
+                // Gather our sessions variables together
+                let reqParams = {
+                    api_m: options.method,
+                    api_c: that.clientSessionVars.apiClientId, //clientId
+                    api_s: that.clientSessionVars.apiAccessToken, //apiAccessToken (may be empty)
+                    api_v: that.clientSessionVars.apiVersion //api version
+                };
+                _.extend(reqParams, options.params); // Combine the arrays
+
+                if (sign === true) {
+                    // Generate a signature to validate that we are authenticated
+                    if (that.clientSessionVars.inited) {
+                        reqParams.api_sig = md5(that.clientSessionVars.apiAccessToken + that.clientSessionVars.apiClientId + that.clientSessionVars.secret + that.defaultVars.apiKey);
+                    } else {
+                        reject('callMethod(): requires initialization. Not initialized');
+                        return;
                     }
                 }
-                reqOptions.jar = j;// Adds cookies to the request
-            }
 
-            try {
+                // Create a valid http Request
+                let reqOptions = {
+                    url: that.defaultVars.apiUrl,
+                    formData: reqParams,
+                    headers: {
+                        'User-Agent': that.defaultVars.clientName
+                    }
+                };
+
+                // Some command require adding a cookie, we'll do that here
+                if (options.cookies) {
+                    let j = request.jar();
+                    for (let variable in options.cookies) {
+                        if (options.cookies.hasOwnProperty(variable)) {
+                            let cookieString = variable + '=' + options.cookies[variable];
+                            let cookie = request.cookie(cookieString);
+                            j.setCookie(cookie, that.defaultVars.baseUrl);
+                        }
+                    }
+                    reqOptions.jar = j;// Adds cookies to the request
+                }
+
                 request.post(
                     reqOptions,
                     function (error, response, body) {

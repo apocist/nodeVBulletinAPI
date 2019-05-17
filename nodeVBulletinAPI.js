@@ -437,7 +437,7 @@ class VBApi {
      */
     static getMacAddress() {
         let interfaces = os.networkInterfaces();
-        let address;
+        let address = '';
         loop1:
             for (let k in interfaces) {
                 if (interfaces.hasOwnProperty(k)) {

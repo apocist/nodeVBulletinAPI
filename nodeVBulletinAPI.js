@@ -96,6 +96,8 @@ class VBApi {
         //return new Promise(async function (resolve, reject) {
         // Run itself as a self invoked promise that is awaited by nothing. callMethod shall wait until this is finished
         (async function __initialize_self() {
+            let error = null;
+            let result = null;
             if (
                 !options.hasOwnProperty('apiUrl')
                 || !options.hasOwnProperty('apiKey')
@@ -106,10 +108,10 @@ class VBApi {
             ) {
                 that.clientSessionVars.error = 'apiInit(): Initialization requires a `apiUrl`, `apiKey`, `platformName`, and `platformVersion`';
                 that.__waitingForInitializationCallback(false);
-                // reject(that.clientSessionVars.error);
-                return that.clientSessionVars.error;
-            } else {
+                error = that.clientSessionVars.error;
+            }
 
+            if (error === null) {
                 let regex_url = /^(?:([A-Za-z]+):)?(\/{0,3})([0-9.\-A-Za-z]+)(?::(\d+))?(?:\/([^?#]*))?(?:\?([^#]*))?(?:#(.*))?$/;
                 let url_parts = regex_url.exec(options.apiUrl);
                 that.defaultVars.baseUrl = that.defaultVars.baseUrl || url_parts[1] + ':' + url_parts[2] + url_parts[3] + '/';
@@ -157,25 +159,24 @@ class VBApi {
                         that.clientSessionVars.apiClientId = response.apiclientid;
                         that.clientSessionVars.secret = response.secret;
                         that.clientSessionVars.inited = true;
-
                         that.__waitingForInitializationCallback(true);
-                        // resolve(that);
-                        return that;
-                    } else {
+                        result = that;
+                    }
+
+                    if (result === null) {
                         that.clientSessionVars.error = that.constructor.parseErrorMessage(response) || 'TODO ERROR (api connection did not return a session)';
                         that.__waitingForInitializationCallback(false);
-                        // reject(that.clientSessionVars.error);
-                        return that.clientSessionVars.error;
+                        error = that.clientSessionVars.error;
                     }
                 } catch (e) {
                     that.clientSessionVars.error = e;
                     that.__waitingForInitializationCallback(false);
                     // reject(e);
-                    return e;
+                    error = e;
                 }
             }
+            return error || result;
         }());
-        //});
     }
 
     /**
@@ -251,13 +252,16 @@ class VBApi {
             }
 
             // Sign all calls except for api_init
-            if (options.method === 'api_init') sign = false;
+            if (options.method === 'api_init') {
+                sign = false;
+            }
 
             // await a valid session before continuing (skipping waiting on __initialize())
             if (sign === true) {
                 try {
                     await that.waitForInitialization();
                 } catch (e) {
+                    // For some reason is waitForInitialization(), there's nothing to be done, ignore it
                 }
             }
 
@@ -422,7 +426,7 @@ class VBApi {
             } catch (e) {
                 reject(e);
             }
-            return error || true;
+
             if (error) {
                 reject(error);
             } else {

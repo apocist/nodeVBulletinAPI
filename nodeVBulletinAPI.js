@@ -65,21 +65,22 @@ class VBApi {
         }; // A blank callback to be filled in
 
         options = options || {};
-        if (!_.isEmpty(apiUrl) || !_.isEmpty(options.apiUrl)) {
-            options.apiUrl = apiUrl || options.apiUrl || {};
-        }
-        if (!_.isEmpty(apiKey) || !_.isEmpty(options.apiKey)) {
-            options.apiKey = apiKey || options.apiKey || {};
-        }
-        if (!_.isEmpty(platformName) || !_.isEmpty(options.platformName)) {
-            options.platformName = platformName || options.platformName || {};
-        }
-        if (!_.isEmpty(platformVersion) || !_.isEmpty(options.platformVersion)) {
-            options.platformVersion = platformVersion || options.platformVersion || {};
-        }
+        options.apiUrl = apiUrl || options.apiUrl || '';
+        options.apiKey = apiKey || options.apiKey || '';
+        options.platformName = platformName || options.platformName || '';
+        options.platformVersion = platformVersion || options.platformVersion || '';
 
-        this.__initialize(options)
-
+        if (
+            options.apiUrl !== ''
+            && options.apiUrl !== ''
+            && options.platformName !== ''
+            && options.platformVersion !== ''
+        ) {
+            this.__initialize(options);
+        } else {
+            this.clientSessionVars.error = 'apiInit(): Initialization requires a `apiUrl`, `apiKey`, `platformName`, and `platformVersion`';
+            this.__waitingForInitializationCallback(false);
+        }
     }
 
     /**
@@ -93,87 +94,71 @@ class VBApi {
      */
     __initialize(options) {
         let that = this;
-        //return new Promise(async function (resolve, reject) {
         // Run itself as a self invoked promise that is awaited by nothing. callMethod shall wait until this is finished
         (async function __initialize_self() {
             let error = null;
             let result = null;
-            if (
-                !options.hasOwnProperty('apiUrl')
-                || !options.hasOwnProperty('apiKey')
-                || !options.hasOwnProperty('platformName')
-                || !options.hasOwnProperty('platformVersion')
-                || options.platformName === ''
-                || options.platformVersion === ''
-            ) {
-                that.clientSessionVars.error = 'apiInit(): Initialization requires a `apiUrl`, `apiKey`, `platformName`, and `platformVersion`';
-                that.__waitingForInitializationCallback(false);
-                error = that.clientSessionVars.error;
-            }
+            let regex_url = /^(?:([A-Za-z]+):)?(\/{0,3})([0-9.\-A-Za-z]+)(?::(\d+))?(?:\/([^?#]*))?(?:\?([^#]*))?(?:#(.*))?$/;
+            let url_parts = regex_url.exec(options.apiUrl);
+            that.defaultVars.baseUrl = that.defaultVars.baseUrl || url_parts[1] + ':' + url_parts[2] + url_parts[3] + '/';
+            that.defaultVars.apiUrl = that.defaultVars.apiUrl || options.apiUrl;
+            that.defaultVars.apiKey = that.defaultVars.apiKey || options.apiKey;
+            that.defaultVars.uniqueId = that.defaultVars.uniqueId || md5(that.defaultVars.clientName + that.defaultVars.clientVersion + options.platformName + options.platformVersion + that.constructor.getMacAddress() + new Date().getTime());
 
-            if (error === null) {
-                let regex_url = /^(?:([A-Za-z]+):)?(\/{0,3})([0-9.\-A-Za-z]+)(?::(\d+))?(?:\/([^?#]*))?(?:\?([^#]*))?(?:#(.*))?$/;
-                let url_parts = regex_url.exec(options.apiUrl);
-                that.defaultVars.baseUrl = that.defaultVars.baseUrl || url_parts[1] + ':' + url_parts[2] + url_parts[3] + '/';
-                that.defaultVars.apiUrl = that.defaultVars.apiUrl || options.apiUrl;
-                that.defaultVars.apiKey = that.defaultVars.apiKey || options.apiKey;
-                that.defaultVars.uniqueId = that.defaultVars.uniqueId || md5(that.defaultVars.clientName + that.defaultVars.clientVersion + options.platformName + options.platformVersion + that.constructor.getMacAddress() + new Date().getTime());
-
-                try {
-                    /**
-                     *
-                     * @type {{}}
-                     * @property {string} apiversion
-                     * @property {string} apiaccesstoken
-                     * @property {string} sessionhash
-                     * @property {string} apiclientid
-                     * @property {string} secret
-                     */
-                    let response = await that.callMethod({
-                        method: 'api_init',
-                        params: {
-                            clientname: that.defaultVars.clientName,
-                            clientversion: that.defaultVars.clientVersion,
-                            platformname: options.platformName,
-                            platformversion: options.platformVersion,
-                            uniqueid: that.defaultVars.uniqueId
-                        }
-                    });
-
-                    that.clientSessionVars.apiVersion = '';
-                    that.clientSessionVars.apiAccessToken = '';
-                    that.clientSessionVars.sessionHash = '';
-                    that.clientSessionVars.apiClientId = '';
-                    that.clientSessionVars.secret = '';
-                    that.clientSessionVars.inited = false;
-                    if (
-                        response.apiversion
-                        && response.apiaccesstoken
-                        && response.sessionhash
-                        && response.apiclientid
-                        && response.secret
-                    ) {
-                        that.clientSessionVars.apiVersion = response.apiversion;
-                        that.clientSessionVars.apiAccessToken = response.apiaccesstoken;
-                        that.clientSessionVars.sessionHash = response.sessionhash;
-                        that.clientSessionVars.apiClientId = response.apiclientid;
-                        that.clientSessionVars.secret = response.secret;
-                        that.clientSessionVars.inited = true;
-                        that.__waitingForInitializationCallback(true);
-                        result = that;
+            try {
+                /**
+                 *
+                 * @type {{}}
+                 * @property {string} apiversion
+                 * @property {string} apiaccesstoken
+                 * @property {string} sessionhash
+                 * @property {string} apiclientid
+                 * @property {string} secret
+                 */
+                let response = await that.callMethod({
+                    method: 'api_init',
+                    params: {
+                        clientname: that.defaultVars.clientName,
+                        clientversion: that.defaultVars.clientVersion,
+                        platformname: options.platformName,
+                        platformversion: options.platformVersion,
+                        uniqueid: that.defaultVars.uniqueId
                     }
+                });
 
-                    if (result === null) {
-                        that.clientSessionVars.error = that.constructor.parseErrorMessage(response) || 'TODO ERROR (api connection did not return a session)';
-                        that.__waitingForInitializationCallback(false);
-                        error = that.clientSessionVars.error;
-                    }
-                } catch (e) {
-                    that.clientSessionVars.error = e;
-                    that.__waitingForInitializationCallback(false);
-                    // reject(e);
-                    error = e;
+                that.clientSessionVars.apiVersion = '';
+                that.clientSessionVars.apiAccessToken = '';
+                that.clientSessionVars.sessionHash = '';
+                that.clientSessionVars.apiClientId = '';
+                that.clientSessionVars.secret = '';
+                that.clientSessionVars.inited = false;
+                if (
+                    response.apiversion
+                    && response.apiaccesstoken
+                    && response.sessionhash
+                    && response.apiclientid
+                    && response.secret
+                ) {
+                    that.clientSessionVars.apiVersion = response.apiversion;
+                    that.clientSessionVars.apiAccessToken = response.apiaccesstoken;
+                    that.clientSessionVars.sessionHash = response.sessionhash;
+                    that.clientSessionVars.apiClientId = response.apiclientid;
+                    that.clientSessionVars.secret = response.secret;
+                    that.clientSessionVars.inited = true;
+                    that.__waitingForInitializationCallback(true);
+                    result = that;
                 }
+
+                if (result === null) {
+                    that.clientSessionVars.error = that.constructor.parseErrorMessage(response) || 'TODO ERROR (api connection did not return a session)';
+                    that.__waitingForInitializationCallback(false);
+                    error = that.clientSessionVars.error;
+                }
+            } catch (e) {
+                that.clientSessionVars.error = e;
+                that.__waitingForInitializationCallback(false);
+                // reject(e);
+                error = e;
             }
             return error || result;
         }());

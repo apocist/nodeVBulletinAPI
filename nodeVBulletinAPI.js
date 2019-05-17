@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 const md5 = require('js-md5'),
     os = require('os'),
     request = require('request'),
@@ -65,21 +65,22 @@ class VBApi {
         }; // A blank callback to be filled in
 
         options = options || {};
-        if (!_.isEmpty(apiUrl) || !_.isEmpty(options.apiUrl)) {
-            options.apiUrl = apiUrl || options.apiUrl || {};
-        }
-        if (!_.isEmpty(apiKey) || !_.isEmpty(options.apiKey)) {
-            options.apiKey = apiKey || options.apiKey || {};
-        }
-        if (!_.isEmpty(platformName) || !_.isEmpty(options.platformName)) {
-            options.platformName = platformName || options.platformName || {};
-        }
-        if (!_.isEmpty(platformVersion) || !_.isEmpty(options.platformVersion)) {
-            options.platformVersion = platformVersion || options.platformVersion || {};
-        }
+        options.apiUrl = apiUrl || options.apiUrl || '';
+        options.apiKey = apiKey || options.apiKey || '';
+        options.platformName = platformName || options.platformName || '';
+        options.platformVersion = platformVersion || options.platformVersion || '';
 
-        this.__initialize(options)
-
+        if (
+            options.apiUrl !== ''
+            && options.apiUrl !== ''
+            && options.platformName !== ''
+            && options.platformVersion !== ''
+        ) {
+            this.__initialize(options);
+        } else {
+            this.clientSessionVars.error = 'apiInit(): Initialization requires a `apiUrl`, `apiKey`, `platformName`, and `platformVersion`';
+            this.__waitingForInitializationCallback(false);
+        }
     }
 
     /**
@@ -93,89 +94,74 @@ class VBApi {
      */
     __initialize(options) {
         let that = this;
-        //return new Promise(async function (resolve, reject) {
         // Run itself as a self invoked promise that is awaited by nothing. callMethod shall wait until this is finished
         (async function __initialize_self() {
-            if (
-                !options.hasOwnProperty('apiUrl')
-                || !options.hasOwnProperty('apiKey')
-                || !options.hasOwnProperty('platformName')
-                || !options.hasOwnProperty('platformVersion')
-                || options.platformName === ''
-                || options.platformVersion === ''
-            ) {
-                that.clientSessionVars.error = 'apiInit(): Initialization requires a `apiUrl`, `apiKey`, `platformName`, and `platformVersion`';
-                that.__waitingForInitializationCallback(false);
-                // reject(that.clientSessionVars.error);
-                return that.clientSessionVars.error;
-            } else {
+            let error = null;
+            let result = null;
+            let regex_url = /^(?:([A-Za-z]+):)?(\/{0,3})([0-9.\-A-Za-z]+)(?::(\d+))?(?:\/([^?#]*))?(?:\?([^#]*))?(?:#(.*))?$/;
+            let url_parts = regex_url.exec(options.apiUrl);
+            that.defaultVars.baseUrl = that.defaultVars.baseUrl || url_parts[1] + ':' + url_parts[2] + url_parts[3] + '/';
+            that.defaultVars.apiUrl = that.defaultVars.apiUrl || options.apiUrl;
+            that.defaultVars.apiKey = that.defaultVars.apiKey || options.apiKey;
+            that.defaultVars.uniqueId = that.defaultVars.uniqueId || md5(that.defaultVars.clientName + that.defaultVars.clientVersion + options.platformName + options.platformVersion + that.constructor.getMacAddress() + new Date().getTime());
 
-                let regex_url = /^(?:([A-Za-z]+):)?(\/{0,3})([0-9.\-A-Za-z]+)(?::(\d+))?(?:\/([^?#]*))?(?:\?([^#]*))?(?:#(.*))?$/;
-                let url_parts = regex_url.exec(options.apiUrl);
-                that.defaultVars.baseUrl = that.defaultVars.baseUrl || url_parts[1] + ':' + url_parts[2] + url_parts[3] + '/';
-                that.defaultVars.apiUrl = that.defaultVars.apiUrl || options.apiUrl;
-                that.defaultVars.apiKey = that.defaultVars.apiKey || options.apiKey;
-                that.defaultVars.uniqueId = that.defaultVars.uniqueId || md5(that.defaultVars.clientName + that.defaultVars.clientVersion + options.platformName + options.platformVersion + that.constructor.getMacAddress() + new Date().getTime());
-
-                try {
-                    /**
-                     *
-                     * @type {{}}
-                     * @property {string} apiversion
-                     * @property {string} apiaccesstoken
-                     * @property {string} sessionhash
-                     * @property {string} apiclientid
-                     * @property {string} secret
-                     */
-                    let response = await that.callMethod({
-                        method: 'api_init',
-                        params: {
-                            clientname: that.defaultVars.clientName,
-                            clientversion: that.defaultVars.clientVersion,
-                            platformname: options.platformName,
-                            platformversion: options.platformVersion,
-                            uniqueid: that.defaultVars.uniqueId
-                        }
-                    });
-
-                    that.clientSessionVars.apiVersion = '';
-                    that.clientSessionVars.apiAccessToken = '';
-                    that.clientSessionVars.sessionHash = '';
-                    that.clientSessionVars.apiClientId = '';
-                    that.clientSessionVars.secret = '';
-                    that.clientSessionVars.inited = false;
-                    if (
-                        response.apiversion
-                        && response.apiaccesstoken
-                        && response.sessionhash
-                        && response.apiclientid
-                        && response.secret
-                    ) {
-                        that.clientSessionVars.apiVersion = response.apiversion;
-                        that.clientSessionVars.apiAccessToken = response.apiaccesstoken;
-                        that.clientSessionVars.sessionHash = response.sessionhash;
-                        that.clientSessionVars.apiClientId = response.apiclientid;
-                        that.clientSessionVars.secret = response.secret;
-                        that.clientSessionVars.inited = true;
-
-                        that.__waitingForInitializationCallback(true);
-                        // resolve(that);
-                        return that;
-                    } else {
-                        that.clientSessionVars.error = that.constructor.parseErrorMessage(response) || 'TODO ERROR (api connection did not return a session)';
-                        that.__waitingForInitializationCallback(false);
-                        // reject(that.clientSessionVars.error);
-                        return that.clientSessionVars.error;
+            try {
+                /**
+                 *
+                 * @type {{}}
+                 * @property {string} apiversion
+                 * @property {string} apiaccesstoken
+                 * @property {string} sessionhash
+                 * @property {string} apiclientid
+                 * @property {string} secret
+                 */
+                let response = await that.callMethod({
+                    method: 'api_init',
+                    params: {
+                        clientname: that.defaultVars.clientName,
+                        clientversion: that.defaultVars.clientVersion,
+                        platformname: options.platformName,
+                        platformversion: options.platformVersion,
+                        uniqueid: that.defaultVars.uniqueId
                     }
-                } catch (e) {
-                    that.clientSessionVars.error = e;
-                    that.__waitingForInitializationCallback(false);
-                    // reject(e);
-                    return e;
+                });
+
+                that.clientSessionVars.apiVersion = '';
+                that.clientSessionVars.apiAccessToken = '';
+                that.clientSessionVars.sessionHash = '';
+                that.clientSessionVars.apiClientId = '';
+                that.clientSessionVars.secret = '';
+                that.clientSessionVars.inited = false;
+                if (
+                    response.apiversion
+                    && response.apiaccesstoken
+                    && response.sessionhash
+                    && response.apiclientid
+                    && response.secret
+                ) {
+                    that.clientSessionVars.apiVersion = response.apiversion;
+                    that.clientSessionVars.apiAccessToken = response.apiaccesstoken;
+                    that.clientSessionVars.sessionHash = response.sessionhash;
+                    that.clientSessionVars.apiClientId = response.apiclientid;
+                    that.clientSessionVars.secret = response.secret;
+                    that.clientSessionVars.inited = true;
+                    that.__waitingForInitializationCallback(true);
+                    result = that;
                 }
+
+                if (result === null) {
+                    that.clientSessionVars.error = that.constructor.parseErrorMessage(response) || 'TODO ERROR (api connection did not return a session)';
+                    that.__waitingForInitializationCallback(false);
+                    error = that.clientSessionVars.error;
+                }
+            } catch (e) {
+                that.clientSessionVars.error = e;
+                that.__waitingForInitializationCallback(false);
+                // reject(e);
+                error = e;
             }
+            return error || result;
         }());
-        //});
     }
 
     /**
@@ -245,64 +231,63 @@ class VBApi {
         options = options || {};
         options.params = options.params || {};
         return new Promise(async function (resolve, reject) {
-            if (!options.method) {
-                reject('callMethod(): requires a supplied method');
-                return;
-            }
-
-            // Sign all calls except for api_init
-            if (options.method === 'api_init') sign = false;
-
-            // await a valid session before continuing (skipping waiting on __initialize())
-            if (sign === true) {
-                try {
-                    await that.waitForInitialization();
-                } catch (e) {
-                }
-            }
-
-            // Gather our sessions variables together
-            let reqParams = {
-                api_m: options.method,
-                api_c: that.clientSessionVars.apiClientId, //clientId
-                api_s: that.clientSessionVars.apiAccessToken, //apiAccessToken (may be empty)
-                api_v: that.clientSessionVars.apiVersion //api version
-            };
-            _.extend(reqParams, options.params); // Combine the arrays
-
-            if (sign === true) {
-                // Generate a signature to validate that we are authenticated
-                if (that.clientSessionVars.inited) {
-                    reqParams.api_sig = md5(that.clientSessionVars.apiAccessToken + that.clientSessionVars.apiClientId + that.clientSessionVars.secret + that.defaultVars.apiKey);
-                } else {
-                    reject('callMethod(): requires initialization. Not initialized');
+            try {
+                if (!options.method) {
+                    reject('callMethod(): requires a supplied method');
                     return;
                 }
-            }
 
-            // Create a valid http Request
-            let reqOptions = {
-                url: that.defaultVars.apiUrl,
-                formData: reqParams,
-                headers: {
-                    'User-Agent': that.defaultVars.clientName
+                // Sign all calls except for api_init
+                if (options.method === 'api_init') {
+                    sign = false;
                 }
-            };
 
-            // Some command require adding a cookie, we'll do that here
-            if (options.cookies) {
-                let j = request.jar();
-                for (let variable in options.cookies) {
-                    if (options.cookies.hasOwnProperty(variable)) {
-                        let cookieString = variable + '=' + options.cookies[variable];
-                        let cookie = request.cookie(cookieString);
-                        j.setCookie(cookie, that.defaultVars.baseUrl);
+                // await a valid session before continuing (skipping waiting on __initialize())
+                if (sign === true) {
+                    await that.waitForInitialization();
+                }
+
+                // Gather our sessions variables together
+                let reqParams = {
+                    api_m: options.method,
+                    api_c: that.clientSessionVars.apiClientId, //clientId
+                    api_s: that.clientSessionVars.apiAccessToken, //apiAccessToken (may be empty)
+                    api_v: that.clientSessionVars.apiVersion //api version
+                };
+                _.extend(reqParams, options.params); // Combine the arrays
+
+                if (sign === true) {
+                    // Generate a signature to validate that we are authenticated
+                    if (that.clientSessionVars.inited) {
+                        reqParams.api_sig = md5(that.clientSessionVars.apiAccessToken + that.clientSessionVars.apiClientId + that.clientSessionVars.secret + that.defaultVars.apiKey);
+                    } else {
+                        reject('callMethod(): requires initialization. Not initialized');
+                        return;
                     }
                 }
-                reqOptions.jar = j;// Adds cookies to the request
-            }
 
-            try {
+                // Create a valid http Request
+                let reqOptions = {
+                    url: that.defaultVars.apiUrl,
+                    formData: reqParams,
+                    headers: {
+                        'User-Agent': that.defaultVars.clientName
+                    }
+                };
+
+                // Some command require adding a cookie, we'll do that here
+                if (options.cookies) {
+                    let j = request.jar();
+                    for (let variable in options.cookies) {
+                        if (options.cookies.hasOwnProperty(variable)) {
+                            let cookieString = variable + '=' + options.cookies[variable];
+                            let cookie = request.cookie(cookieString);
+                            j.setCookie(cookie, that.defaultVars.baseUrl);
+                        }
+                    }
+                    reqOptions.jar = j;// Adds cookies to the request
+                }
+
                 request.post(
                     reqOptions,
                     function (error, response, body) {
@@ -422,7 +407,7 @@ class VBApi {
             } catch (e) {
                 reject(e);
             }
-            return error || true;
+
             if (error) {
                 reject(error);
             } else {
@@ -437,7 +422,7 @@ class VBApi {
      */
     static getMacAddress() {
         let interfaces = os.networkInterfaces();
-        let address;
+        let address = '';
         loop1:
             for (let k in interfaces) {
                 if (interfaces.hasOwnProperty(k)) {
@@ -527,7 +512,7 @@ class VBApi {
         options.forumid = forumId || options.forumid || ''; //required
 
         return new Promise(async function (resolve, reject) {
-            let forum;
+            let forum = null;
             try {
                 let response = await that.callMethod({
                     method: 'forumdisplay',
@@ -542,7 +527,11 @@ class VBApi {
             } catch (e) {
                 reject(e);
             }
-            resolve(forum);
+            if (forum !== null) {
+                resolve(forum);
+            } else {
+                reject();
+            }
         });
     }
 
@@ -562,7 +551,7 @@ class VBApi {
         options.threadid = threadId || options.threadid || ''; //required
 
         return new Promise(async function (resolve, reject) {
-            let thread;
+            let thread = null;
             try {
                 let response = await that.callMethod({
                     method: 'showthread',
@@ -577,7 +566,11 @@ class VBApi {
             } catch (e) {
                 reject(e);
             }
-            resolve(thread);
+            if (thread !== null) {
+                resolve(thread);
+            } else {
+                reject();
+            }
         });
     }
 
@@ -686,7 +679,7 @@ class VBApi {
         options.username = username || options.username || ''; //required
 
         return new Promise(async function (resolve, reject) {
-            let thread;
+            let thread = null;
             try {
                 let response = await that.callMethod({
                     method: 'member',
@@ -701,7 +694,11 @@ class VBApi {
             } catch (e) {
                 reject(e);
             }
-            resolve(thread);
+            if (thread !== null) {
+                resolve(thread);
+            } else {
+                reject();
+            }
         });
     }
 
@@ -772,7 +769,7 @@ class VBApi {
 
         if (options.signature === true) {
             //System only handle 1 or 0. defaults to 0
-            options.signature = '1';
+            options.signature = '1'; // FIXME This didn't seem to work
         }
 
         return new Promise(async function (resolve, reject) {

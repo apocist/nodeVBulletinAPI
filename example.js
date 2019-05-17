@@ -16,23 +16,23 @@ async function example() {
         // To use more command, let's log our session in
         // login() uses cleartext while loginMD5() uses md5 hashed password
         let userData = await session.login('username', 'password');
-        console.log('logged in:', userData);
+        console.info('logged in:', userData);
 
         // We're now also logged in (login() would have rejected otherwise) , we should be able to do much more
         // Here are some more additional actions we can take:
 
-        //console.log('got forum list:', await session.getForums());
+        //console.info('got forum list:', await session.getForums());
 
-        //console.log('got forum:', await session.getForum(565));
+        //console.info('got forum:', await session.getForum(565));
 
-        //console.log('got thread:', await session.getThread(44740));
+        //console.info('got thread:', await session.getThread(44740));
 
-        //console.log('got thread:', await session.getMember('apocist'));
+        //console.info('got thread:', await session.getMember('apocist'));
 
-        //console.log('closed thread:', await session.modCloseThread(44740));
+        //console.info('closed thread:', await session.modCloseThread(44740));
 
         /*
-        console.log(
+        console.info(
             await session.newPost(
                 44740,
                 'Wiggle new testings~!',
@@ -44,7 +44,7 @@ async function example() {
         */
 
         /*
-        console.log(
+        console.info(
             await session.newThread(
                 565,
                 'new Thread test',

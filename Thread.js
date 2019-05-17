@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 const Post = require('./Post');
 
 /**

@@ -4,7 +4,9 @@ const md5 = require('js-md5'),
     request = require('request'),
     _ = require('underscore'),
     Forum = require('./Forum'),
+    Inbox = require('./Inbox'),
     Member = require('./Member'),
+    Message = require('./Message'),
     //Post = require('./Post'),
     Thread = require('./Thread'),
     {version} = require('./package.json');
@@ -791,6 +793,38 @@ class VBApi {
                 }
             } catch (e) {
                 reject(e);
+            }
+        });
+    }
+
+    /**
+     * Get logged in user's Inbox and list of private Messages
+     * @returns {Promise<Inbox>} - Returns a Thread object
+     * @fulfill {Inbox}
+     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     */
+    async getInbox() {
+        let that = this;
+
+        return new Promise(async function (resolve, reject) {
+            let inbox = null;
+            try {
+                let response = await that.callMethod({
+                    method: 'private_messagelist'
+                });
+                if (
+                    response
+                    && response.hasOwnProperty('response')
+                ) {
+                    inbox = new Inbox(response.response);
+                }
+            } catch (e) {
+                reject(e);
+            }
+            if (inbox !== null) {
+                resolve(inbox);
+            } else {
+                reject();
             }
         });
     }

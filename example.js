@@ -21,6 +21,8 @@ async function example() {
         // We're now also logged in (login() would have rejected otherwise) , we should be able to do much more
         // Here are some more additional actions we can take:
 
+        //console.info('got inbox:', await session.getInbox());
+
         //console.info('got forum list:', await session.getForums());
 
         //console.info('got forum:', await session.getForum(565));

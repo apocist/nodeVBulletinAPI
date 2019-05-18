@@ -799,18 +799,21 @@ class VBApi {
 
     /**
      * Get logged in user's Inbox and list of private Messages
-     * @returns {Promise<Inbox>} - Returns a Thread object
+     * @param {object=} options
+     * @returns {Promise<Inbox>} - Returns an Inbox object
      * @fulfill {Inbox}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    async getInbox() {
+    async getInbox(options) {
         let that = this;
+        options = options || {};
 
         return new Promise(async function (resolve, reject) {
             let inbox = null;
             try {
                 let response = await that.callMethod({
-                    method: 'private_messagelist'
+                    method: 'private_messagelist',
+                    params: options
                 });
                 if (
                     response
@@ -823,6 +826,44 @@ class VBApi {
             }
             if (inbox !== null) {
                 resolve(inbox);
+            } else {
+                reject();
+            }
+        });
+    }
+
+    /**
+     * Get details of a specific Message for the logged in user
+     * @param {number} id
+     * @param {object=} options
+     * @param {number=} options.pmid - Ignore, already required at id
+     * @returns {Promise<Message>} - Returns a Message object
+     * @fulfill {Message}
+     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     */
+    async getMessage(id, options) {
+        let that = this;
+        options = options || {};
+        options.pmid = id || options.pmid || ''; //required
+
+        return new Promise(async function (resolve, reject) {
+            let message = null;
+            try {
+                let response = await that.callMethod({
+                    method: 'private_showpm',
+                    params: options
+                });
+                if (
+                    response
+                    && response.hasOwnProperty('response')
+                ) {
+                    message = new Message(response.response);
+                }
+            } catch (e) {
+                reject(e);
+            }
+            if (message !== null) {
+                resolve(message);
             } else {
                 reject();
             }

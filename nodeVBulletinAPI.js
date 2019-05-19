@@ -168,52 +168,52 @@ class VBApi {
 
     /**
      * Will return after #initialize() is complete. Otherwise may reject() after 15 second timeout
-     * @param {number=15} waitTime
+     * @param {number=5} waitTime
      * @returns {Promise<void>}
      * @fulfill {void}
      * @reject {string} - Error Reason
      */
     async waitForInitialization(waitTime) {
         let that = this;
-        waitTime = waitTime || 15;
+        waitTime = waitTime || 5;
         return new Promise(async function (resolve, reject) {
             if (that.clientSessionVars.inited === true) {
                 resolve();
             } else if (that.clientSessionVars.error !== null) {
                 reject(that.clientSessionVars.error);
-            }
+            } else {
+                /**
+                 * @type {number}
+                 * @private
+                 */
+                that.__waitingForInitializationTimeout = setTimeout(
+                    function () {
+                        that.__waitingForInitializationCallback = function () {
+                        }; // Set back to a blank function
+                        if (that.clientSessionVars.inited === true) {
+                            resolve();
+                        } else {
+                            reject('Connection could not be achieved due to timed out', that.clientSessionVars.error);
+                        }
 
-            /**
-             * @type {number}
-             * @private
-             */
-            that.__waitingForInitializationTimeout = setTimeout(
-                function () {
-                    that.__waitingForInitializationCallback = function () {
-                    }; // Set back to a blank function
-                    if (that.clientSessionVars.inited === true) {
-                        resolve();
-                    } else {
-                        reject('Connection could not be achieved due to timed out', that.clientSessionVars.error);
+                    },
+                    waitTime * 1000 // x second timeout
+                );
+                /**
+                 * @param {boolean=true} success
+                 * @private
+                 */
+                that.__waitingForInitializationCallback = function (success) {
+                    if (that.__waitingForInitializationTimeout) {
+                        clearTimeout(that.__waitingForInitializationTimeout);
                     }
-
-                },
-                waitTime * 1000 // 1 minute timeout
-            );
-            /**
-             * @param {boolean=true} success
-             * @private
-             */
-            that.__waitingForInitializationCallback = function (success) {
-                if (that.__waitingForInitializationTimeout) {
-                    clearTimeout(that.__waitingForInitializationTimeout);
-                }
-                if (success === false) {
-                    reject(that.clientSessionVars.error);
-                } else {
-                    resolve();
-                }
-            };
+                    if (success === false) {
+                        reject(that.clientSessionVars.error);
+                    } else {
+                        resolve();
+                    }
+                };
+            }
         })
     }
 
@@ -451,7 +451,7 @@ class VBApi {
     /**
      *
      * @param {object} response - Response object from callMethod()
-     * @returns {string} status - Error message
+     * @returns {string || null} status - Error message
      */
     static parseErrorMessage(response) {
         let retur = '';
@@ -833,6 +833,42 @@ class VBApi {
     }
 
     /**
+     *
+     * Attempts to submit a new Thread into a specified Forum. This will also be considered the first Post
+     * @param {Date} date - Delete all messages from before the specified date
+     * @param {number=0} folderId - Folder Id, defaults to 0
+     * @param {object=} options
+     * @param {string=} options.dateline - Ignore, already required at date
+     * @param {number=} options.folderid - Ignore, already required at folderId
+     * TODO note additional options
+     * @returns {Promise<void>} - Returns a unhandled response currently
+     * @fulfill {void}
+     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     */
+    async emptyInbox(date, folderId, options) {
+        let that = this;
+        options = options || {};
+        options.dateline = parseInt((date.getTime() / 1000).toFixed(0)) || options.dateline || ''; //required
+        options.folderid = folderId || options.folderid || '0';
+
+        return new Promise(async function (resolve, reject) {
+            try {
+                let response = await that.callMethod({
+                    method: 'private_confirmemptyfolder',
+                    params: options
+                });
+                let possibleError = that.constructor.parseErrorMessage(response);
+                if (possibleError !== 'pm_messagesdeleted') {
+                    reject(possibleError || response);
+                }
+            } catch (e) {
+                reject(e);
+            }
+            resolve();
+        });
+    }
+
+    /**
      * Get details of a specific Message for the logged in user
      * @param {number} id
      * @param {object=} options
@@ -881,8 +917,8 @@ class VBApi {
      * @param {string=} options.title - Ignore, already required at title
      * @param {string=} options.message - Ignore, already required at message
      * TODO note additional options
-     * @returns {Promise<Void>} - Successfully completes if sent. TODO: provide a better response
-     * @fulfill {Void}
+     * @returns {Promise<void>} - Successfully completes if sent. TODO: provide a better response
+     * @fulfill {void}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
     async sendMessage(username, title, message, options) {

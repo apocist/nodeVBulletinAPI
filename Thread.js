@@ -5,7 +5,7 @@ const Post = require('./Post');
  * @type {Class}
  * @property {number} forumId
  * @property {string} forumTitle
- * @property {number} threadId
+ * @property {number} id
  * @property {string} title
  * @property {Post[]} posts
  */
@@ -48,7 +48,7 @@ class Thread {
                     this.forumTitle = threadData.forumtitle;
                 }
                 if (threadData.hasOwnProperty('threadid')) {
-                    this.threadId = parseInt(threadData.threadid);
+                    this.id = parseInt(threadData.threadid);
                 }
                 if (threadData.hasOwnProperty('title')) {
                     this.title = threadData.title;

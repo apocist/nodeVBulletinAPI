@@ -833,6 +833,42 @@ class VBApi {
     }
 
     /**
+     *
+     * Attempts to submit a new Thread into a specified Forum. This will also be considered the first Post
+     * @param {Date} date - Delete all messages from before the specified date
+     * @param {number=0} folderId - Folder Id, defaults to 0
+     * @param {object=} options
+     * @param {string=} options.dateline - Ignore, already required at date
+     * @param {number=} options.folderid - Ignore, already required at folderId
+     * TODO note additional options
+     * @returns {Promise<*>} - Returns a unhandled response currently
+     * @fulfill {*}
+     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     */
+    async emptyInbox(date, folderId, options) {
+        let that = this;
+        options = options || {};
+        options.dateline = parseInt((date.getTime() / 1000).toFixed(0)) || options.dateline || ''; //required
+        options.folderid = folderId || options.folderid || '0';
+
+        return new Promise(async function (resolve, reject) {
+            try {
+                let response = await that.callMethod({
+                    method: 'private_confirmemptyfolder',
+                    params: options
+                });
+                let possibleError = that.constructor.parseErrorMessage(response);
+                if (possibleError !== 'pm_messagesdeleted') {
+                    reject(possibleError || response);
+                }
+            } catch (e) {
+                reject(e);
+            }
+            resolve();
+        });
+    }
+
+    /**
      * Get details of a specific Message for the logged in user
      * @param {number} id
      * @param {object=} options

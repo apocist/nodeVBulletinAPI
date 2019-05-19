@@ -168,14 +168,14 @@ class VBApi {
 
     /**
      * Will return after #initialize() is complete. Otherwise may reject() after 15 second timeout
-     * @param {number=15} waitTime
+     * @param {number=5} waitTime
      * @returns {Promise<void>}
      * @fulfill {void}
      * @reject {string} - Error Reason
      */
     async waitForInitialization(waitTime) {
         let that = this;
-        waitTime = waitTime || 15;
+        waitTime = waitTime || 5;
         return new Promise(async function (resolve, reject) {
             if (that.clientSessionVars.inited === true) {
                 resolve();
@@ -841,8 +841,8 @@ class VBApi {
      * @param {string=} options.dateline - Ignore, already required at date
      * @param {number=} options.folderid - Ignore, already required at folderId
      * TODO note additional options
-     * @returns {Promise<*>} - Returns a unhandled response currently
-     * @fulfill {*}
+     * @returns {Promise<void>} - Returns a unhandled response currently
+     * @fulfill {void}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
     async emptyInbox(date, folderId, options) {
@@ -917,8 +917,8 @@ class VBApi {
      * @param {string=} options.title - Ignore, already required at title
      * @param {string=} options.message - Ignore, already required at message
      * TODO note additional options
-     * @returns {Promise<Void>} - Successfully completes if sent. TODO: provide a better response
-     * @fulfill {Void}
+     * @returns {Promise<void>} - Successfully completes if sent. TODO: provide a better response
+     * @fulfill {void}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
     async sendMessage(username, title, message, options) {

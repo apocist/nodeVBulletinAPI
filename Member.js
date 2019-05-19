@@ -3,7 +3,7 @@
 /**
  *
  * @type {Class}
- * @property {number} userId
+ * @property {number} id
  * @property {string} username
  * @property {string} profileUrl
  * @property {string} avatarUrl
@@ -66,7 +66,7 @@ class Member {
                 let memberData = rawData['prepared'];
 
                 const numberItems = {
-                    userId: 'userid',
+                    id: 'userid',
                     joinDate: 'joindate', // converts to Date later
                     lastActivityTime: 'lastactivitytime', // converts to Date later
                     posts: 'posts',

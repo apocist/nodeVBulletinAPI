@@ -3,7 +3,7 @@
 /**
  *
  * @type {Class}
- * @property {number} postId
+ * @property {number} id
  * @property {number} threadId
  * @property {number} postTime
  * @property {string} title
@@ -48,7 +48,7 @@ class Post {
             if (rawData.hasOwnProperty('post')) {
                 let postData = rawData['post'];
                 if (postData.hasOwnProperty('postid')) {
-                    this.postId = parseInt(postData.postid);
+                    this.id = parseInt(postData.postid);
                 }
                 if (postData.hasOwnProperty('threadid')) {
                     this.threadId = parseInt(postData.threadid);

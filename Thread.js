@@ -177,7 +177,7 @@ class Thread {
      * @fulfill {*}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    static async modCloseThread(VBApi, threadId) {
+    static async closeThread(VBApi, threadId) {
         let that = VBApi;
         let cookies = {};
         if (threadId) {
@@ -215,7 +215,7 @@ class Thread {
      * @fulfill {*}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    static async modOpenThread(VBApi, threadId) {
+    static async openThread(VBApi, threadId) {
         let that = VBApi;
         let cookies = {};
         if (threadId) {
@@ -253,7 +253,7 @@ class Thread {
      * @fulfill {*}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    static async modDeleteThread(VBApi, threadId) {
+    static async deleteThread(VBApi, threadId) {
         let that = VBApi;
         let cookies = {};
         if (threadId) {

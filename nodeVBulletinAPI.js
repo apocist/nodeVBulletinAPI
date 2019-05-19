@@ -587,8 +587,8 @@ class VBApi {
      * @fulfill {*}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    modCloseThread(threadId) {
-        return Thread.modCloseThread(this, threadId);
+    closeThread(threadId) {
+        return Thread.closeThread(this, threadId);
     }
 
     /**
@@ -599,8 +599,8 @@ class VBApi {
      * @fulfill {*}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    modOpenThread(threadId) {
-        return Thread.modOpenThread(this, threadId);
+    openThread(threadId) {
+        return Thread.openThread(this, threadId);
     }
 
     /**
@@ -611,8 +611,32 @@ class VBApi {
      * @fulfill {*}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
+    deleteThread(threadId) {
+        return Thread.deleteThread(this, threadId);
+    }
+
+    /**
+     * @deprecated as of 1.3.1
+     * @see closeThread
+     */
+    modCloseThread(threadId) {
+        return Thread.closeThread(this, threadId);
+    }
+
+    /**
+     * @deprecated as of 1.3.1
+     * @see openThread
+     */
+    modOpenThread(threadId) {
+        return Thread.openThread(this, threadId);
+    }
+
+    /**
+     * @deprecated as of 1.3.1
+     * @see deleteThread
+     */
     modDeleteThread(threadId) {
-        return Thread.modDeleteThread(this, threadId);
+        return Thread.deleteThread(this, threadId);
     }
 
     /**

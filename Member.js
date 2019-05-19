@@ -16,7 +16,7 @@
  * @property {string} birthday
  * @property {string} homepage
  * @property {string} displayEmail
- * @property {number} userNoteCount
+ * @property {number} noteCount
  * @property {boolean} canBeFriend
  * @property {boolean} hasIMDetails
  * @property {boolean} online
@@ -71,7 +71,7 @@ class Member {
                     lastActivityTime: 'lastactivitytime', // converts to Date later
                     posts: 'posts',
                     age: 'age',
-                    userNoteCount: 'usernotecount',
+                    noteCount: 'usernotecount',
                 };
 
                 const stringItems = {

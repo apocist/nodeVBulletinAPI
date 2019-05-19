@@ -19,7 +19,7 @@
  * @property {number} userNoteCount
  * @property {boolean} canBeFriend
  * @property {boolean} hasIMDetails
- * @property {boolean} onlineStatus
+ * @property {boolean} online
  */
 class Member {
     /**
@@ -128,7 +128,7 @@ class Member {
                     ) {
                         bool = true;
                     }
-                    that.onlineStatus = bool;
+                    that.online = bool;
                 }
 
                 if (that.hasOwnProperty('joinDate')) {

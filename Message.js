@@ -82,7 +82,7 @@ class Message {
                 that.username = pm.username;
                 that.user = {
                     // TODO push this into a Member object?
-                    userId: parseInt(post.userid),
+                    id: parseInt(post.userid),
                     username: post.username,
                     title: post.usertitle,
                     signature: post.signature,
@@ -90,10 +90,6 @@ class Message {
                     online: !!parseInt(post.onlinestatus.onlinestatus),
                     joinDate: new Date(parseInt(post.joindate) * 1000),
                 };
-
-
-                    that.title= rawMessage.pm.title; // string
-                    that.time= new Date(parseInt(rawMessage.pm.sendtime) * 1000); // Date
 
             }
 

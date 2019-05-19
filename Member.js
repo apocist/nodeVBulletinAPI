@@ -10,7 +10,7 @@
  * @property {string} profilePicUrl
  * @property {Date} joinDate
  * @property {Date} lastActivityTime
- * @property {string} userTitle
+ * @property {string} title
  * @property {string} signature
  * @property {number} posts
  * @property {string} birthday
@@ -76,7 +76,7 @@ class Member {
 
                 const stringItems = {
                     username: 'username',
-                    userTitle: 'usertitle',
+                    title: 'usertitle',
                     avatarUrl: 'avatarurl',
                     profilePicUrl: 'profilepicurl',
                     profileUrl: 'profileurl',

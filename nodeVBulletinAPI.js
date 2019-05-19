@@ -4,7 +4,9 @@ const md5 = require('js-md5'),
     request = require('request'),
     _ = require('underscore'),
     Forum = require('./Forum'),
+    Inbox = require('./Inbox'),
     Member = require('./Member'),
+    Message = require('./Message'),
     //Post = require('./Post'),
     Thread = require('./Thread'),
     {version} = require('./package.json');
@@ -792,6 +794,119 @@ class VBApi {
             } catch (e) {
                 reject(e);
             }
+        });
+    }
+
+    /**
+     * Get logged in user's Inbox and list of private Messages
+     * @param {object=} options
+     * @returns {Promise<Inbox>} - Returns an Inbox object
+     * @fulfill {Inbox}
+     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     */
+    async getInbox(options) {
+        let that = this;
+        options = options || {};
+
+        return new Promise(async function (resolve, reject) {
+            let inbox = null;
+            try {
+                let response = await that.callMethod({
+                    method: 'private_messagelist',
+                    params: options
+                });
+                if (
+                    response
+                    && response.hasOwnProperty('response')
+                ) {
+                    inbox = new Inbox(response.response);
+                }
+            } catch (e) {
+                reject(e);
+            }
+            if (inbox !== null) {
+                resolve(inbox);
+            } else {
+                reject();
+            }
+        });
+    }
+
+    /**
+     * Get details of a specific Message for the logged in user
+     * @param {number} id
+     * @param {object=} options
+     * @param {number=} options.pmid - Ignore, already required at id
+     * @returns {Promise<Message>} - Returns a Message object
+     * @fulfill {Message}
+     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     */
+    async getMessage(id, options) {
+        let that = this;
+        options = options || {};
+        options.pmid = id || options.pmid || ''; //required
+
+        return new Promise(async function (resolve, reject) {
+            let message = null;
+            try {
+                let response = await that.callMethod({
+                    method: 'private_showpm',
+                    params: options
+                });
+                if (
+                    response
+                    && response.hasOwnProperty('response')
+                ) {
+                    message = new Message(response.response);
+                }
+            } catch (e) {
+                reject(e);
+            }
+            if (message !== null) {
+                resolve(message);
+            } else {
+                reject();
+            }
+        });
+    }
+
+    /**
+     *
+     * @param {string} username - Username to send the message to
+     * @param {string} title - Message Subject
+     * @param {string} message - Message content
+     * @param {object=} options
+     * @param {boolean=} options.signature - Optionally append your signature
+     * @param {string=} options.recipients - Ignore, already required at username
+     * @param {string=} options.title - Ignore, already required at title
+     * @param {string=} options.message - Ignore, already required at message
+     * TODO note additional options
+     * @returns {Promise<Void>} - Successfully completes if sent. TODO: provide a better response
+     * @fulfill {Void}
+     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     */
+    async sendMessage(username, title, message, options) {
+        let that = this;
+        options = options || {};
+        options.recipients = username || options.recipients || ''; //required
+        options.title = title || options.title || ''; //required
+        options.message = message || options.message || ''; //required
+        options.signature = options.signature === true ? '1' : '0';
+
+        return new Promise(async function (resolve, reject) {
+            try {
+                let response = await that.callMethod({
+                    method: 'private_insertpm',
+                    params: options
+                });
+                let possibleError = that.constructor.parseErrorMessage(response);
+                if (possibleError !== 'pm_messagesent') {
+                    reject(possibleError || response);
+                }
+            } catch (e) {
+                reject(e);
+            }
+            resolve();
         });
     }
 

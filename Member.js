@@ -3,23 +3,23 @@
 /**
  *
  * @type {Class}
- * @property {number} userId
+ * @property {number} id
  * @property {string} username
  * @property {string} profileUrl
  * @property {string} avatarUrl
  * @property {string} profilePicUrl
  * @property {Date} joinDate
  * @property {Date} lastActivityTime
- * @property {string} userTitle
+ * @property {string} title
  * @property {string} signature
  * @property {number} posts
  * @property {string} birthday
  * @property {string} homepage
  * @property {string} displayEmail
- * @property {number} userNoteCount
+ * @property {number} noteCount
  * @property {boolean} canBeFriend
  * @property {boolean} hasIMDetails
- * @property {boolean} onlineStatus
+ * @property {boolean} online
  */
 class Member {
     /**
@@ -66,17 +66,17 @@ class Member {
                 let memberData = rawData['prepared'];
 
                 const numberItems = {
-                    userId: 'userid',
+                    id: 'userid',
                     joinDate: 'joindate', // converts to Date later
                     lastActivityTime: 'lastactivitytime', // converts to Date later
                     posts: 'posts',
                     age: 'age',
-                    userNoteCount: 'usernotecount',
+                    noteCount: 'usernotecount',
                 };
 
                 const stringItems = {
                     username: 'username',
-                    userTitle: 'usertitle',
+                    title: 'usertitle',
                     avatarUrl: 'avatarurl',
                     profilePicUrl: 'profilepicurl',
                     profileUrl: 'profileurl',
@@ -128,7 +128,7 @@ class Member {
                     ) {
                         bool = true;
                     }
-                    that.onlineStatus = bool;
+                    that.online = bool;
                 }
 
                 if (that.hasOwnProperty('joinDate')) {

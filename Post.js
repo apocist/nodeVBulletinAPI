@@ -86,6 +86,142 @@ class Post {
     __cleanup() {
         delete (this.rawData);
     };
+
+    /**
+     * Attempts to submit a new Post into a specified Thread
+     * @param {VBApi} VBApi
+     * @param {number} threadId - Thread id
+     * @param {string} message - Post Message
+     * @param {object=} options
+     * @param {boolean=} options.signature  - Optionally append your signature
+     * @param {number=} options.threadid - Ignore, already required at threadId
+     * @param {string=} options.message - Ignore, already required at message
+     * TODO note additional options
+     * @returns {Promise<*>} - Returns a unhandled response currently
+     * @fulfill {*}
+     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     */
+    static async newPost(VBApi, threadId, message, options) {
+        let that = VBApi;
+        options = options || {};
+        options.threadid = threadId || options.threadid || ''; //required
+        options.message = message || options.message || ''; //required
+        if (options.signature === true) {
+            //System only handle 1 or 0. defaults to 0
+            options.signature = '1';
+        }
+
+        return new Promise(async function (resolve, reject) {
+            try {
+                let response = await that.callMethod({
+                    method: 'newreply_postreply',
+                    params: options
+                });
+                let possibleError = that.constructor.parseErrorMessage(response);
+                //success is errormessgae 'redirect_postthanks'
+                //error 'threadclosed' if thread is closed. FIXME does not error
+                //reports threadid and postid
+                if (
+                    possibleError === 'redirect_postthanks'
+                    && response.hasOwnProperty('show')
+                ) {
+                    resolve(response.show);
+                } else {
+                    reject(possibleError || response);
+                }
+            } catch (e) {
+                reject(e);
+            }
+        });
+    }
+
+    /**
+     * Attempts to edit an existing Post
+     * @param {VBApi} VBApi
+     * @param {number} postId - Post id
+     * @param {string} message - Post Message
+     * @param {object=} options
+     * @param {string=} options.reason - Reason for editing
+     * @param {boolean=} options.signature - Optionally append your signature
+     * @param {number=} options.postid - Ignore, already required at postId
+     * @param {string=} options.message - Ignore, already required at message
+     * TODO note additional options
+     * @returns {Promise<*>} - Returns a unhandled response currently
+     * @fulfill {*}
+     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     */
+    static async editPost(VBApi, postId, message, options) {
+        let that = VBApi;
+        options = options || {};
+        options.postid = postId || options.postid || ''; //required
+        options.message = message || options.message || ''; //required
+        if (options.signature === true) {
+            //System only handle 1 or 0. defaults to 0
+            options.signature = '1';
+        }
+
+        return new Promise(async function (resolve, reject) {
+            try {
+                let response = await that.callMethod({
+                    method: 'editpost_updatepost',
+                    params: options
+                });
+                let possibleError = that.constructor.parseErrorMessage(response);
+                //success is errormessgae 'redirect_editthanks'
+                if (possibleError === 'redirect_editthanks') {
+                    resolve({postid: options.postid});
+                } else {
+                    reject(possibleError || response);
+                }
+            } catch (e) {
+                reject(e);
+            }
+        });
+    }
+
+    /**
+     * TODO untested - does not seem to function yet
+     * Attempts to delete an existing Post
+     * @param {VBApi} VBApi
+     * @param {number} postId - Post id
+     * @param {number} threadId - Thread id
+     * @param {object=} options
+     * @param {string=} options.reason - Reason for deleting
+     * @param {number=} options.postid - Ignore, already required at postId
+     * @param {number=} options.threadid - Ignore, already required at threadId
+     * TODO note additional options
+     * @returns {Promise<*>} - Returns a unhandled response currently
+     * @fulfill {*}
+     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     */
+    static async deletePost(VBApi, postId, threadId, options) {
+        let that = VBApi;
+        options = options || {};
+        options.postid = postId || options.postid || ''; //required
+        options.threadid = threadId || options.threadid || ''; // TODO required????
+
+        return new Promise(async function (resolve, reject) {
+            try {
+                let response = await that.callMethod({
+                    method: 'editpost_deletepost',
+                    params: options
+                });
+                let possibleError = that.constructor.parseErrorMessage(response);
+                //unknown response
+                if (
+                    possibleError === 'redirect_deletepost'
+                    && response.hasOwnProperty('show')
+                ) {
+                    //console.log('response', response);
+                    resolve(response.show);
+                } else {
+                    reject(possibleError || response);
+                }
+            } catch (e) {
+                reject(e);
+            }
+        });
+    }
 }
 
 module.exports = Post;

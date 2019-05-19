@@ -109,6 +109,86 @@ class Message {
     __cleanup() {
         delete (this.rawData);
     };
+
+    /**
+     * Get details of a specific Message for the logged in user
+     * @param {VBApi} VBApi
+     * @param {number} id
+     * @param {object=} options
+     * @param {number=} options.pmid - Ignore, already required at id
+     * @returns {Promise<Message>} - Returns a Message object
+     * @fulfill {Message}
+     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     */
+    static async getMessage(VBApi, id, options) {
+        let that = VBApi;
+        options = options || {};
+        options.pmid = id || options.pmid || ''; //required
+
+        return new Promise(async function (resolve, reject) {
+            let message = null;
+            try {
+                let response = await that.callMethod({
+                    method: 'private_showpm',
+                    params: options
+                });
+                if (
+                    response
+                    && response.hasOwnProperty('response')
+                ) {
+                    message = new Message(response.response);
+                }
+            } catch (e) {
+                reject(e);
+            }
+            if (message !== null) {
+                resolve(message);
+            } else {
+                reject();
+            }
+        });
+    }
+
+    /**
+     *
+     * @param {VBApi} VBApi
+     * @param {string} username - Username to send the message to
+     * @param {string} title - Message Subject
+     * @param {string} message - Message content
+     * @param {object=} options
+     * @param {boolean=} options.signature - Optionally append your signature
+     * @param {string=} options.recipients - Ignore, already required at username
+     * @param {string=} options.title - Ignore, already required at title
+     * @param {string=} options.message - Ignore, already required at message
+     * TODO note additional options
+     * @returns {Promise<void>} - Successfully completes if sent. TODO: provide a better response
+     * @fulfill {void}
+     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     */
+    static async sendMessage(VBApi, username, title, message, options) {
+        let that = VBApi;
+        options = options || {};
+        options.recipients = username || options.recipients || ''; //required
+        options.title = title || options.title || ''; //required
+        options.message = message || options.message || ''; //required
+        options.signature = options.signature === true ? '1' : '0';
+
+        return new Promise(async function (resolve, reject) {
+            try {
+                let response = await that.callMethod({
+                    method: 'private_insertpm',
+                    params: options
+                });
+                let possibleError = that.constructor.parseErrorMessage(response);
+                if (possibleError !== 'pm_messagesent') {
+                    reject(possibleError || response);
+                }
+            } catch (e) {
+                reject(e);
+            }
+            resolve();
+        });
+    }
 }
 
 module.exports = Message;

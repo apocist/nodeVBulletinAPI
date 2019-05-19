@@ -181,39 +181,39 @@ class VBApi {
                 resolve();
             } else if (that.clientSessionVars.error !== null) {
                 reject(that.clientSessionVars.error);
-            }
+            } else {
+                /**
+                 * @type {number}
+                 * @private
+                 */
+                that.__waitingForInitializationTimeout = setTimeout(
+                    function () {
+                        that.__waitingForInitializationCallback = function () {
+                        }; // Set back to a blank function
+                        if (that.clientSessionVars.inited === true) {
+                            resolve();
+                        } else {
+                            reject('Connection could not be achieved due to timed out', that.clientSessionVars.error);
+                        }
 
-            /**
-             * @type {number}
-             * @private
-             */
-            that.__waitingForInitializationTimeout = setTimeout(
-                function () {
-                    that.__waitingForInitializationCallback = function () {
-                    }; // Set back to a blank function
-                    if (that.clientSessionVars.inited === true) {
-                        resolve();
-                    } else {
-                        reject('Connection could not be achieved due to timed out', that.clientSessionVars.error);
+                    },
+                    waitTime * 1000 // x second timeout
+                );
+                /**
+                 * @param {boolean=true} success
+                 * @private
+                 */
+                that.__waitingForInitializationCallback = function (success) {
+                    if (that.__waitingForInitializationTimeout) {
+                        clearTimeout(that.__waitingForInitializationTimeout);
                     }
-
-                },
-                waitTime * 1000 // 1 minute timeout
-            );
-            /**
-             * @param {boolean=true} success
-             * @private
-             */
-            that.__waitingForInitializationCallback = function (success) {
-                if (that.__waitingForInitializationTimeout) {
-                    clearTimeout(that.__waitingForInitializationTimeout);
-                }
-                if (success === false) {
-                    reject(that.clientSessionVars.error);
-                } else {
-                    resolve();
-                }
-            };
+                    if (success === false) {
+                        reject(that.clientSessionVars.error);
+                    } else {
+                        resolve();
+                    }
+                };
+            }
         })
     }
 
@@ -451,7 +451,7 @@ class VBApi {
     /**
      *
      * @param {object} response - Response object from callMethod()
-     * @returns {string} status - Error message
+     * @returns {string || null} status - Error message
      */
     static parseErrorMessage(response) {
         let retur = '';

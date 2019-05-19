@@ -96,6 +96,77 @@ class Forum {
     __cleanup() {
         delete (this.rawData);
     };
+
+    /**
+     * List every Forum and sub forum available to the user.
+     * @param {VBApi} VBApi
+     * @returns {Promise<Forum[]>} - Array of Forum objects
+     * @fulfill {Forum[]}
+     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     */
+    static async getForums(VBApi) {
+        let that = VBApi;
+        return new Promise(async function (resolve, reject) {
+            let forums = [];
+            try {
+                let response = await that.callMethod(
+                    {
+                        method: 'api_forumlist'
+                    });
+
+                if (response) {
+                    for (let forum in response) {
+                        if (response.hasOwnProperty(forum)) {
+                            forums.push(new Forum(response[forum]));
+                        }
+                    }
+                }
+            } catch (e) {
+                reject(e);
+            }
+            resolve(forums);
+        });
+    }
+
+    /**
+     * List detailed info about a forum and it's sub-forums and threads
+     * @param {VBApi} VBApi
+     * @param {number} forumId - Forum id
+     * @param {object=} options - Secondary Options
+     * @param {number=} options.forumid - Ignore, already required at forumId
+     * TODO note additional options
+     * @returns {Promise<Forum>} - Returns a Forum object
+     * @fulfill {Forum}
+     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     */
+    static async getForum(VBApi, forumId, options) {
+        let that = VBApi;
+        options = options || {};
+        options.forumid = forumId || options.forumid || ''; //required
+
+        return new Promise(async function (resolve, reject) {
+            let forum = null;
+            try {
+                let response = await that.callMethod({
+                    method: 'forumdisplay',
+                    params: options
+                });
+                if (
+                    response
+                    && response.hasOwnProperty('response')
+                ) {
+                    forum = new Forum(response.response);
+                }
+            } catch (e) {
+                reject(e);
+            }
+            if (forum !== null) {
+                resolve(forum);
+            } else {
+                reject();
+            }
+        });
+    }
 }
 
 module.exports = Forum;

@@ -7,7 +7,7 @@ const md5 = require('js-md5'),
     Inbox = require('./Inbox'),
     Member = require('./Member'),
     Message = require('./Message'),
-    //Post = require('./Post'),
+    Post = require('./Post'),
     Thread = require('./Thread'),
     {version} = require('./package.json');
 
@@ -474,28 +474,8 @@ class VBApi {
      * @fulfill {Forum[]}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    async getForums() {
-        let that = this;
-        return new Promise(async function (resolve, reject) {
-            let forums = [];
-            try {
-                let response = await that.callMethod(
-                    {
-                        method: 'api_forumlist'
-                    });
-
-                if (response) {
-                    for (let forum in response) {
-                        if (response.hasOwnProperty(forum)) {
-                            forums.push(new Forum(response[forum]));
-                        }
-                    }
-                }
-            } catch (e) {
-                reject(e);
-            }
-            resolve(forums);
-        });
+    getForums() {
+        return Forum.getForums(this);
     }
 
     /**
@@ -508,73 +488,10 @@ class VBApi {
      * @fulfill {Forum}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    async getForum(forumId, options) {
-        let that = this;
-        options = options || {};
-        options.forumid = forumId || options.forumid || ''; //required
-
-        return new Promise(async function (resolve, reject) {
-            let forum = null;
-            try {
-                let response = await that.callMethod({
-                    method: 'forumdisplay',
-                    params: options
-                });
-                if (
-                    response
-                    && response.hasOwnProperty('response')
-                ) {
-                    forum = new Forum(response.response);
-                }
-            } catch (e) {
-                reject(e);
-            }
-            if (forum !== null) {
-                resolve(forum);
-            } else {
-                reject();
-            }
-        });
+    getForum(forumId, options) {
+        return Forum.getForum(this, forumId, options);
     }
 
-    /**
-     * List detailed information about a Thread and it's Posts
-     * @param {number} threadId - Thread id
-     * @param {object=} options - Secondary Options
-     * @param {number=} options.threadid - Ignore, already required at threadId
-     * TODO note additional options
-     * @returns {Promise<Thread>} - Returns a Thread object
-     * @fulfill {Thread}
-     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
-     */
-    async getThread(threadId, options) {
-        let that = this;
-        options = options || {};
-        options.threadid = threadId || options.threadid || ''; //required
-
-        return new Promise(async function (resolve, reject) {
-            let thread = null;
-            try {
-                let response = await that.callMethod({
-                    method: 'showthread',
-                    params: options
-                });
-                if (
-                    response
-                    && response.hasOwnProperty('response')
-                ) {
-                    thread = new Thread(response.response);
-                }
-            } catch (e) {
-                reject(e);
-            }
-            if (thread !== null) {
-                resolve(thread);
-            } else {
-                reject();
-            }
-        });
-    }
 
     /**
      * Attempts to submit a new Post into a specified Thread
@@ -589,38 +506,8 @@ class VBApi {
      * @fulfill {*}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    async newPost(threadId, message, options) {
-        let that = this;
-        options = options || {};
-        options.threadid = threadId || options.threadid || ''; //required
-        options.message = message || options.message || ''; //required
-        if (options.signature === true) {
-            //System only handle 1 or 0. defaults to 0
-            options.signature = '1';
-        }
-
-        return new Promise(async function (resolve, reject) {
-            try {
-                let response = await that.callMethod({
-                    method: 'newreply_postreply',
-                    params: options
-                });
-                let possibleError = that.constructor.parseErrorMessage(response);
-                //success is errormessgae 'redirect_postthanks'
-                //error 'threadclosed' if thread is closed. FIXME does not error
-                //reports threadid and postid
-                if (
-                    possibleError === 'redirect_postthanks'
-                    && response.hasOwnProperty('show')
-                ) {
-                    resolve(response.show);
-                } else {
-                    reject(possibleError || response);
-                }
-            } catch (e) {
-                reject(e);
-            }
-        });
+    newPost(threadId, message, options) {
+        return Post.newPost(this, threadId, message, options);
     }
 
     /**
@@ -637,71 +524,8 @@ class VBApi {
      * @fulfill {*}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    async editPost(postId, message, options) {
-        let that = this;
-        options = options || {};
-        options.postid = postId || options.postid || ''; //required
-        options.message = message || options.message || ''; //required
-        if (options.signature === true) {
-            //System only handle 1 or 0. defaults to 0
-            options.signature = '1';
-        }
-
-        return new Promise(async function (resolve, reject) {
-            try {
-                let response = await that.callMethod({
-                    method: 'editpost_updatepost',
-                    params: options
-                });
-                let possibleError = that.constructor.parseErrorMessage(response);
-                //success is errormessgae 'redirect_editthanks'
-                if (possibleError === 'redirect_editthanks') {
-                    resolve({postid: options.postid});
-                } else {
-                    reject(possibleError || response);
-                }
-            } catch (e) {
-                reject(e);
-            }
-        });
-    }
-
-    /**
-     * Attempts to retrieve data about a specific user found by username
-     * @param {string} username - Username
-     * @param {object=} options - Secondary Options
-     * @param {string=} options.username - Ignore, already required at username
-     * @returns {Promise<Member>} - Returns a Member object
-     * @fulfill {Member}
-     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
-     */
-    async getMember(username, options) {
-        let that = this;
-        options = options || {};
-        options.username = username || options.username || ''; //required
-
-        return new Promise(async function (resolve, reject) {
-            let thread = null;
-            try {
-                let response = await that.callMethod({
-                    method: 'member',
-                    params: options
-                });
-                if (
-                    response
-                    && response.hasOwnProperty('response')
-                ) {
-                    thread = new Member(response.response);
-                }
-            } catch (e) {
-                reject(e);
-            }
-            if (thread !== null) {
-                resolve(thread);
-            } else {
-                reject();
-            }
-        });
+    editPost(postId, message, options) {
+        return Post.editPost(this, postId, message, options);
     }
 
     /**
@@ -718,33 +542,22 @@ class VBApi {
      * @fulfill {*}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    async deletePost(postId, threadId, options) {
-        let that = this;
-        options = options || {};
-        options.postid = postId || options.postid || ''; //required
-        options.threadid = threadId || options.threadid || ''; // TODO required????
+    deletePost(postId, threadId, options) {
+        return Post.deletePost(this, postId, threadId, options);
+    }
 
-        return new Promise(async function (resolve, reject) {
-            try {
-                let response = await that.callMethod({
-                    method: 'editpost_deletepost',
-                    params: options
-                });
-                let possibleError = that.constructor.parseErrorMessage(response);
-                //unknown response
-                if (
-                    possibleError === 'redirect_deletepost'
-                    && response.hasOwnProperty('show')
-                ) {
-                    //console.log('response', response);
-                    resolve(response.show);
-                } else {
-                    reject(possibleError || response);
-                }
-            } catch (e) {
-                reject(e);
-            }
-        });
+    /**
+     * List detailed information about a Thread and it's Posts
+     * @param {number} threadId - Thread id
+     * @param {object=} options - Secondary Options
+     * @param {number=} options.threadid - Ignore, already required at threadId
+     * TODO note additional options
+     * @returns {Promise<Thread>} - Returns a Thread object
+     * @fulfill {Thread}
+     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     */
+    getThread(threadId, options) {
+        return Thread.getThread(this, threadId, options);
     }
 
     /**
@@ -762,39 +575,44 @@ class VBApi {
      * @fulfill {*}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    async newThread(forumId, subject, message, options) {
-        let that = this;
-        options = options || {};
-        options.forumid = forumId || options.forumid || ''; //required
-        options.subject = subject || options.subject || ''; //required
-        options.message = message || options.message || ''; //required
+    newThread(forumId, subject, message, options) {
+        return Thread.newThread(this, forumId, subject, message, options);
+    }
 
-        if (options.signature === true) {
-            //System only handle 1 or 0. defaults to 0
-            options.signature = '1'; // FIXME This didn't seem to work
-        }
+    /**
+     * TODO incomplete - does not seem to function yet
+     * Attempts to close a specific Thread. Requires a user to have a 'inline mod' permissions
+     * @param {number} threadId - Id of Thread to close
+     * @returns {Promise<*>} - Returns a unhandled response currently
+     * @fulfill {*}
+     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     */
+    modCloseThread(threadId) {
+        return Thread.modCloseThread(this, threadId);
+    }
 
-        return new Promise(async function (resolve, reject) {
-            try {
-                let response = await that.callMethod({
-                    method: 'newthread_postthread',
-                    params: options
-                });
-                let possibleError = that.constructor.parseErrorMessage(response);
-                //success is errormessgae 'redirect_postthanks'
-                //reports threadid and postid
-                if (
-                    possibleError === 'redirect_postthanks'
-                    && response.hasOwnProperty('show')
-                ) {
-                    resolve(response.show);
-                } else {
-                    reject(possibleError || response);
-                }
-            } catch (e) {
-                reject(e);
-            }
-        });
+    /**
+     * TODO incomplete - does not seem to function yet
+     * Attempts to open a specific Thread. Requires a user to have a 'inline mod' permissions
+     * @param {number} threadId - Id of Thread to open
+     * @returns {Promise<*>} - Returns a unhandled response currently
+     * @fulfill {*}
+     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     */
+    modOpenThread(threadId) {
+        return Thread.modOpenThread(this, threadId);
+    }
+
+    /**
+     * TODO incomplete - does not seem to function yet
+     * Attempts to delete a specific Thread. Requires a user to have a 'inline mod' permissions
+     * @param {number} threadId - Id of Thread to close
+     * @returns {Promise<*>} - Returns a unhandled response currently
+     * @fulfill {*}
+     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     */
+    modDeleteThread(threadId) {
+        return Thread.modDeleteThread(this, threadId);
     }
 
     /**
@@ -804,36 +622,11 @@ class VBApi {
      * @fulfill {Inbox}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    async getInbox(options) {
-        let that = this;
-        options = options || {};
-
-        return new Promise(async function (resolve, reject) {
-            let inbox = null;
-            try {
-                let response = await that.callMethod({
-                    method: 'private_messagelist',
-                    params: options
-                });
-                if (
-                    response
-                    && response.hasOwnProperty('response')
-                ) {
-                    inbox = new Inbox(response.response);
-                }
-            } catch (e) {
-                reject(e);
-            }
-            if (inbox !== null) {
-                resolve(inbox);
-            } else {
-                reject();
-            }
-        });
+    getInbox(options) {
+        return Inbox.getInbox(this, options);
     }
 
     /**
-     *
      * Attempts to submit a new Thread into a specified Forum. This will also be considered the first Post
      * @param {Date} date - Delete all messages from before the specified date
      * @param {number=0} folderId - Folder Id, defaults to 0
@@ -845,27 +638,8 @@ class VBApi {
      * @fulfill {void}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    async emptyInbox(date, folderId, options) {
-        let that = this;
-        options = options || {};
-        options.dateline = parseInt((date.getTime() / 1000).toFixed(0)) || options.dateline || ''; //required
-        options.folderid = folderId || options.folderid || '0';
-
-        return new Promise(async function (resolve, reject) {
-            try {
-                let response = await that.callMethod({
-                    method: 'private_confirmemptyfolder',
-                    params: options
-                });
-                let possibleError = that.constructor.parseErrorMessage(response);
-                if (possibleError !== 'pm_messagesdeleted') {
-                    reject(possibleError || response);
-                }
-            } catch (e) {
-                reject(e);
-            }
-            resolve();
-        });
+    emptyInbox(date, folderId, options) {
+        return Inbox.emptyInbox(this, date, folderId, options)
     }
 
     /**
@@ -877,33 +651,8 @@ class VBApi {
      * @fulfill {Message}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    async getMessage(id, options) {
-        let that = this;
-        options = options || {};
-        options.pmid = id || options.pmid || ''; //required
-
-        return new Promise(async function (resolve, reject) {
-            let message = null;
-            try {
-                let response = await that.callMethod({
-                    method: 'private_showpm',
-                    params: options
-                });
-                if (
-                    response
-                    && response.hasOwnProperty('response')
-                ) {
-                    message = new Message(response.response);
-                }
-            } catch (e) {
-                reject(e);
-            }
-            if (message !== null) {
-                resolve(message);
-            } else {
-                reject();
-            }
-        });
+    getMessage(id, options) {
+        return Message.getMessage(this, id, options);
     }
 
     /**
@@ -921,140 +670,21 @@ class VBApi {
      * @fulfill {void}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    async sendMessage(username, title, message, options) {
-        let that = this;
-        options = options || {};
-        options.recipients = username || options.recipients || ''; //required
-        options.title = title || options.title || ''; //required
-        options.message = message || options.message || ''; //required
-        options.signature = options.signature === true ? '1' : '0';
-
-        return new Promise(async function (resolve, reject) {
-            try {
-                let response = await that.callMethod({
-                    method: 'private_insertpm',
-                    params: options
-                });
-                let possibleError = that.constructor.parseErrorMessage(response);
-                if (possibleError !== 'pm_messagesent') {
-                    reject(possibleError || response);
-                }
-            } catch (e) {
-                reject(e);
-            }
-            resolve();
-        });
+    sendMessage(username, title, message, options) {
+        return Message.sendMessage(this, username, title, message, options)
     }
 
     /**
-     * TODO incomplete - does not seem to function yet
-     * Attempts to close a specific Thread. Requires a user to have a 'inline mod' permissions
-     * @param {number} threadId - Id of Thread to close
-     * @returns {Promise<*>} - Returns a unhandled response currently
-     * @fulfill {*}
+     * Attempts to retrieve data about a specific user found by username
+     * @param {string} username - Username
+     * @param {object=} options - Secondary Options
+     * @param {string=} options.username - Ignore, already required at username
+     * @returns {Promise<Member>} - Returns a Member object
+     * @fulfill {Member}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    async modCloseThread(threadId) {
-        let that = this;
-        let cookies = {};
-        if (threadId) {
-            //TODO multiple ids are delimited with a '-'. eg: 123-345-456
-            cookies.vbulletin_inlinethread = threadId;
-        }
-        return new Promise(async function (resolve, reject) {
-            try {
-                let response = await that.callMethod({
-                    method: 'inlinemod_close',
-                    cookies: cookies || {}
-                });
-                //let possibleError = that.constructor.parseErrorMessage(response);
-                //unknown responses
-                /*if (
-                    possibleError === 'redirect_postthanks'
-                    && response.hasOwnProperty('show')
-                ) {*/
-                resolve(response);
-                /*} else {
-                    reject(possibleError || response);
-                }*/
-            } catch (e) {
-                reject(e);
-            }
-        });
-    }
-
-    /**
-     * TODO incomplete - does not seem to function yet
-     * Attempts to open a specific Thread. Requires a user to have a 'inline mod' permissions
-     * @param {number} threadId - Id of Thread to open
-     * @returns {Promise<*>} - Returns a unhandled response currently
-     * @fulfill {*}
-     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
-     */
-    async modOpenThread(threadId) {
-        let that = this;
-        let cookies = {};
-        if (threadId) {
-            //TODO multiple ids are delimited with a '-'. eg: 123-345-456
-            cookies.vbulletin_inlinethread = threadId;
-        }
-        return new Promise(async function (resolve, reject) {
-            try {
-                let response = await that.callMethod({
-                    method: 'inlinemod_open',
-                    cookies: cookies || {}
-                });
-                //let possibleError = that.constructor.parseErrorMessage(response);
-                //unknown responses
-                /*if (
-                    possibleError === 'redirect_postthanks'
-                    && response.hasOwnProperty('show')
-                ) {*/
-                resolve(response);
-                /*} else {
-                    reject(possibleError || response);
-                }*/
-            } catch (e) {
-                reject(e);
-            }
-        });
-    }
-
-    /**
-     * TODO incomplete - does not seem to function yet
-     * Attempts to delete a specific Thread. Requires a user to have a 'inline mod' permissions
-     * @param {number} threadId - Id of Thread to close
-     * @returns {Promise<*>} - Returns a unhandled response currently
-     * @fulfill {*}
-     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
-     */
-    async modDeleteThread(threadId) {
-        let that = this;
-        let cookies = {};
-        if (threadId) {
-            //TODO multiple ids are delimited with a '-'. eg: 123-345-456
-            cookies.vbulletin_inlinethread = threadId;
-        }
-        return new Promise(async function (resolve, reject) {
-            try {
-                let response = await that.callMethod({
-                    method: 'inlinemod_dodeletethreads',
-                    cookies: cookies || {}
-                });
-                //let possibleError = that.constructor.parseErrorMessage(response);
-                //unknown responses
-                /*if (
-                    possibleError === 'redirect_postthanks'
-                    && response.hasOwnProperty('show')
-                ) {*/
-                resolve(response);
-                /*} else {
-                    reject(possibleError || response);
-                }*/
-            } catch (e) {
-                reject(e);
-            }
-        });
+    getMember(username, options) {
+        return Member.getMember(this, username, options);
     }
 }
 

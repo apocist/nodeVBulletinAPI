@@ -144,6 +144,45 @@ class Member {
     __cleanup() {
         delete (this.rawData);
     };
+
+    /**
+     * Attempts to retrieve data about a specific user found by username
+     * @param {VBApi} VBApi
+     * @param {string} username - Username
+     * @param {object=} options - Secondary Options
+     * @param {string=} options.username - Ignore, already required at username
+     * @returns {Promise<Member>} - Returns a Member object
+     * @fulfill {Member}
+     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     */
+    static async getMember(VBApi, username, options) {
+        let that = VBApi;
+        options = options || {};
+        options.username = username || options.username || ''; //required
+
+        return new Promise(async function (resolve, reject) {
+            let thread = null;
+            try {
+                let response = await that.callMethod({
+                    method: 'member',
+                    params: options
+                });
+                if (
+                    response
+                    && response.hasOwnProperty('response')
+                ) {
+                    thread = new Member(response.response);
+                }
+            } catch (e) {
+                reject(e);
+            }
+            if (thread !== null) {
+                resolve(thread);
+            } else {
+                reject();
+            }
+        });
+    }
 }
 
 module.exports = Member;

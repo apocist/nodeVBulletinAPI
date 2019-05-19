@@ -23,6 +23,10 @@ async function example() {
 
         //console.info('got inbox:', await session.getInbox());
 
+        //console.info('got message:', await session.getMessage(241381));
+
+        //console.info('sent message (returns blank for now):', await session.sendMessage('Apocist', 'API Test', 'This was sent form the new api library as a test', {signature: true}));
+
         //console.info('got forum list:', await session.getForums());
 
         //console.info('got forum:', await session.getForum(565));

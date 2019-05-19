@@ -93,13 +93,13 @@ class Message {
 
 
             that.userId = parseInt(post.userid);
-            that.username = pm.username;
+            that.username = pm.fromusername;
             that.user = {
                 id: parseInt(post.userid),
                 username: post.username,
                 title: post.usertitle,
                 signature: post.signature,
-                avatarUrl: post.avatarUrl,
+                avatarUrl: post.avatarurl,
                 online: !!parseInt(post.onlinestatus.onlinestatus),
                 joinDate: new Date(parseInt(post.joindate) * 1000),
             };

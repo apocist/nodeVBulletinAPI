@@ -871,6 +871,46 @@ class VBApi {
     }
 
     /**
+     *
+     * @param {string} username - Username to send the message to
+     * @param {string} title - Message Subject
+     * @param {string} message - Message content
+     * @param {object=} options
+     * @param {boolean=} options.signature - Optionally append your signature
+     * @param {string=} options.recipients - Ignore, already required at username
+     * @param {string=} options.title - Ignore, already required at title
+     * @param {string=} options.message - Ignore, already required at message
+     * TODO note additional options
+     * @returns {Promise<Void>} - Successfully completes if sent. TODO: provide a better response
+     * @fulfill {Void}
+     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     */
+    async sendMessage(username, title, message, options) {
+        let that = this;
+        options = options || {};
+        options.recipients = username || options.recipients || ''; //required
+        options.title = title || options.title || ''; //required
+        options.message = message || options.message || ''; //required
+        options.signature = options.signature === true ? '1' : '0';
+
+        return new Promise(async function (resolve, reject) {
+            try {
+                let response = await that.callMethod({
+                    method: 'private_insertpm',
+                    params: options
+                });
+                let possibleError = that.constructor.parseErrorMessage(response);
+                if (possibleError !== 'pm_messagesent') {
+                    reject(possibleError || response);
+                }
+            } catch (e) {
+                reject(e);
+            }
+            resolve();
+        });
+    }
+
+    /**
      * TODO incomplete - does not seem to function yet
      * Attempts to close a specific Thread. Requires a user to have a 'inline mod' permissions
      * @param {number} threadId - Id of Thread to close

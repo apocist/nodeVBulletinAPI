@@ -1,10 +1,27 @@
 'use strict';
-const util = require('util');
 
 /**
  *
  * @type {Class}
+ * @property {number} id
+ * @property {number} folderId
+ * @property {string} recipients FIXME this needs to be parsed into username possible. expect to change
+ * @property {string} title
+ * @property {string} message
+ * @property {string} messagePlain
+ * @property {string} messageBBCode
+ * @property {'new' || 'old' || 'replied'} status
+ * @property {Date} time
  * @property {number} userId
+ * @property {string} username
+ * @property {Object} user
+ * @property {number} user.id
+ * @property {string} user.username
+ * @property {string} user.title
+ * @property {string} user.signature
+ * @property {string} user.avatarUrl
+ * @property {boolean} user.online
+ * @property {Date} user.joinDate
  */
 class Message {
     /**
@@ -40,7 +57,6 @@ class Message {
      * @property {string} messageData.HTML.postbit.post.message_plain
      * @property {string} messageData.HTML.postbit.post.message_bbcode
      * @property {string} messageData.HTML.postbit.post.signature
-     * @TODO
      */
 
     /**
@@ -55,44 +71,38 @@ class Message {
 
     __parseData() {
         let that = this;
-        if (this.rawData) {
-            let rawData = this.rawData;
-            console.log('got inbox:', util.inspect(rawData, false, 5));
+        if (that.rawData
+            && that.rawData.hasOwnProperty('HTML')
+            && that.rawData.HTML.hasOwnProperty('pm')
+            && that.rawData.HTML.hasOwnProperty('postbit')
+            && that.rawData.HTML.hasOwnProperty('postbit')
+            && that.rawData.HTML.postbit.hasOwnProperty('post')
+        ) {
+            let pm = that.rawData.HTML.pm;
+            let post = that.rawData.HTML.postbit.post;
 
-            if (
-                rawData.hasOwnProperty('HTML')
-                && rawData.HTML.hasOwnProperty('pm')
-                && rawData.HTML.hasOwnProperty('postbit')
-                && rawData.HTML.hasOwnProperty('postbit')
-                && rawData.HTML.postbit.hasOwnProperty('post')
-            ) {
-                let pm = rawData.HTML.pm;
-                let post = rawData.HTML.postbit.post;
-
-                that.id = parseInt(pm.pmid); // number
-                that.folderId = parseInt(pm.folderid);
-                that.recipients = pm.recipients; // FIXME need to parse this
-                that.title = post.title || pm.title;
-                that.message = post.message;
-                that.messagePlain = post.message_plain;
-                that.messageBBCode = post.message_bbcode;
+            that.id = parseInt(pm.pmid); // number
+            that.folderId = parseInt(pm.folderid);
+            that.recipients = pm.recipients; // FIXME need to parse this
+            that.title = post.title || pm.title;
+            that.message = post.message;
+            that.messagePlain = post.message_plain;
+            that.messageBBCode = post.message_bbcode;
+            that.status = post.statusicon;
+            that.time = new Date(parseInt(post.posttime) * 1000);
 
 
-                that.userId = parseInt(post.userid);
-                that.username = pm.username;
-                that.user = {
-                    // TODO push this into a Member object?
-                    id: parseInt(post.userid),
-                    username: post.username,
-                    title: post.usertitle,
-                    signature: post.signature,
-                    avatarUrl: post.avatarUrl,
-                    online: !!parseInt(post.onlinestatus.onlinestatus),
-                    joinDate: new Date(parseInt(post.joindate) * 1000),
-                };
-
-            }
-
+            that.userId = parseInt(post.userid);
+            that.username = pm.username;
+            that.user = {
+                id: parseInt(post.userid),
+                username: post.username,
+                title: post.usertitle,
+                signature: post.signature,
+                avatarUrl: post.avatarUrl,
+                online: !!parseInt(post.onlinestatus.onlinestatus),
+                joinDate: new Date(parseInt(post.joindate) * 1000),
+            };
         }
     };
 

@@ -3,12 +3,12 @@ const Thread = require('./Thread');
 
 /**
  * @type {Class}
- * @property {number} forumId
+ * @property {number} id
  * @property {string} title
  * @property {string} description
  * @property {number} parentId
- * @property {[Forum]} subForums
- * @property {[Thread]} threads
+ * @property {Forum[]} subForums
+ * @property {Thread[]} threads
  */
 class Forum {
     /**
@@ -35,12 +35,12 @@ class Forum {
         this.__cleanup();
     };
 
-    __parseData () {
+    __parseData() {
         if (this.rawData) {
             //TODO need to specify if its fully fetched
             let rawData = this.rawData;
             if (rawData.hasOwnProperty('forumid')) {
-                this.forumId = parseInt(rawData.forumid);
+                this.id = parseInt(rawData.forumid);
             }
             if (rawData.hasOwnProperty('title')) {
                 this.title = rawData.title;
@@ -54,7 +54,7 @@ class Forum {
             if (rawData.hasOwnProperty('foruminfo')) {
                 let forumInfo = rawData.foruminfo;
                 if (forumInfo.hasOwnProperty('forumid')) {
-                    this.forumId = parseInt(forumInfo.forumid);
+                    this.id = parseInt(forumInfo.forumid);
                 }
                 if (forumInfo.hasOwnProperty('title')) {
                     this.title = forumInfo.title;
@@ -93,7 +93,7 @@ class Forum {
         }
     };
 
-    __cleanup () {
+    __cleanup() {
         delete (this.rawData);
     };
 }

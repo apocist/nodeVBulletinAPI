@@ -22,13 +22,8 @@ class VBApi {
      * @param {string} apiKey
      * @param {string} platformName
      * @param {string} platformVersion
-     * @param {object=} options - A fallback to the old style config
-     * @param {string=} options.apiUrl
-     * @param {string=} options.apiKey
-     * @param {string=} options.platformName
-     * @param {string=} options.platformVersion
      */
-    constructor(apiUrl, apiKey, platformName, platformVersion, options) {
+    constructor(apiUrl, apiKey, platformName, platformVersion) {
         /**
          * The current status of the API connection to vBulletin server
          * @type {boolean}
@@ -41,12 +36,12 @@ class VBApi {
          */
         this.__connectionVars = {
             baseUrl: `${urlParts.protocol}//${urlParts.hostname}/`,
-            apiUrl: apiUrl,
+            apiUrl: apiUrl || '',
             apiKey: apiKey,
             clientName: 'nodeVBulletinAPI',
             clientVersion: version,
-            platformName: platformName,
-            platformVersion: platformVersion,
+            platformName: platformName || '',
+            platformVersion: platformVersion || '',
             uniqueId: md5('nodeVBulletinAPI' + version + platformName + platformVersion + uuidV1()),
         };
 
@@ -82,19 +77,13 @@ class VBApi {
         this.__waitingForInitializationCallback = function () {
         }; // A blank callback to be filled in
 
-        options = options || {};
-        options.apiUrl = apiUrl || options.apiUrl || '';
-        options.apiKey = apiKey || options.apiKey || '';
-        options.platformName = platformName || options.platformName || '';
-        options.platformVersion = platformVersion || options.platformVersion || '';
-
         if (
-            options.apiUrl !== ''
-            && options.apiUrl !== ''
-            && options.platformName !== ''
-            && options.platformVersion !== ''
+            this.__connectionVars.apiKey !== ''
+            && this.__connectionVars.apiUrl !== ''
+            && this.__connectionVars.platformName !== ''
+            && this.__connectionVars.platformVersion !== ''
         ) {
-            this.__initialize(options);
+            this.__initialize();
         } else {
             this.__clientSessionVars.error = 'apiInit(): Initialization requires a `apiUrl`, `apiKey`, `platformName`, and `platformVersion`';
             this.__waitingForInitializationCallback(false);
@@ -313,13 +302,13 @@ class VBApi {
     /**
      * Attempts to log in a user.
      * @param {string} username - Username
-     * @param {string} password - clear text password TODO need to secure this more?
+     * @param {string} password - clear text password
      * @param {object=} options
      * @param {string=} options.username - Ignore, already required at username
      * @param {string=} options.password - Ignore, already required at password
      * @returns {Promise<UserVars>}
      * @fulfill {UserVars}
-     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     * @reject {string} - Error Reason. Expects:
      */
     async login(username, password, options) {
         options = options || {};
@@ -332,13 +321,13 @@ class VBApi {
      *
      * Attempts to log in a user. Requires the password to be pre md5 hashed.
      * @param {string} username - Username
-     * @param {string} password - MD5 hashed password TODO need to secure this more?
+     * @param {string} password - MD5 hashed password
      * @param {object=} options
      * @param {string=} options.username - Ignore, already required at username
      * @param {string=} options.password - Ignore, already required at password
      * @returns {Promise<UserVars>}
      * @fulfill {UserVars}
-     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     * @reject {string} - Error Reason. Expects:
      */
     async loginMD5(username, password, options) {
         let that = this;
@@ -370,9 +359,6 @@ class VBApi {
                     }
                 }
                 if (error === 'redirect_login') {
-                    error = null;
-                }
-                if (error === null) {
                     resolve(that.userSessionVars);
                 } else {
                     reject(error);
@@ -445,7 +431,7 @@ class VBApi {
      * List every Forum and sub forum available to the user.
      * @returns {Promise<Forum[]>} - Array of Forum objects
      * @fulfill {Forum[]}
-     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     * @reject {string} - Error Reason. Expects:
      */
     getForums() {
         return Forum.getHome(this);
@@ -456,10 +442,9 @@ class VBApi {
      * @param {number} forumId - Forum id
      * @param {object=} options - Secondary Options
      * @param {number=} options.forumid - Ignore, already required at forumId
-     * TODO note additional options
      * @returns {Promise<Forum>} - Returns a Forum object
      * @fulfill {Forum}
-     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     * @reject {string} - Error Reason. Expects:
      */
     getForum(forumId, options) {
         return Forum.get(this, forumId, options);
@@ -474,10 +459,9 @@ class VBApi {
      * @param {boolean=} options.signature  - Optionally append your signature
      * @param {number=} options.threadid - Ignore, already required at threadId
      * @param {string=} options.message - Ignore, already required at message
-     * TODO note additional options
      * @returns {Promise<*>} - Returns a unhandled response currently
      * @fulfill {*}
-     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     * @reject {string} - Error Reason. Expects:
      */
     createPost(threadId, message, options) {
         return Post.create(this, threadId, message, options);
@@ -500,17 +484,16 @@ class VBApi {
      * @param {boolean=} options.signature - Optionally append your signature
      * @param {number=} options.postid - Ignore, already required at postId
      * @param {string=} options.message - Ignore, already required at message
-     * TODO note additional options
      * @returns {Promise<*>} - Returns a unhandled response currently
      * @fulfill {*}
-     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     * @reject {string} - Error Reason. Expects:
      */
     editPost(postId, message, options) {
         return Post.edit(this, postId, message, options);
     }
 
     /**
-     * TODO untested - does not seem to function yet
+     * Warning untested - does not seem to function yet
      * Attempts to delete an existing Post
      * @param {number} postId - Post id
      * @param {number} threadId - Thread id
@@ -518,10 +501,9 @@ class VBApi {
      * @param {string=} options.reason - Reason for deleting
      * @param {number=} options.postid - Ignore, already required at postId
      * @param {number=} options.threadid - Ignore, already required at threadId
-     * TODO note additional options
      * @returns {Promise<*>} - Returns a unhandled response currently
      * @fulfill {*}
-     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     * @reject {string} - Error Reason. Expects:
      */
     deletePost(postId, threadId, options) {
         return Post.delete(this, postId, threadId, options);
@@ -532,10 +514,9 @@ class VBApi {
      * @param {number} threadId - Thread id
      * @param {object=} options - Secondary Options
      * @param {number=} options.threadid - Ignore, already required at threadId
-     * TODO note additional options
      * @returns {Promise<Thread>} - Returns a Thread object
      * @fulfill {Thread}
-     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     * @reject {string} - Error Reason. Expects:
      */
     getThread(threadId, options) {
         return Thread.get(this, threadId, options);
@@ -551,10 +532,9 @@ class VBApi {
      * @param {number=} options.forumid - Ignore, already required at postId
      * @param {string=} options.subject - Ignore, already required at postId
      * @param {string=} options.message - Ignore, already required at postId
-     * TODO note additional options
      * @returns {Promise<*>} - Returns a unhandled response currently
      * @fulfill {*}
-     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     * @reject {string} - Error Reason. Expects:
      */
     createThread(forumId, subject, message, options) {
         return Thread.create(this, forumId, subject, message, options);
@@ -569,36 +549,36 @@ class VBApi {
     }
 
     /**
-     * TODO incomplete - does not seem to function yet
+     * Warning untested - may not function yet
      * Attempts to close a specific Thread. Requires a user to have a 'inline mod' permissions
      * @param {number} threadId - Id of Thread to close
      * @returns {Promise<*>} - Returns a unhandled response currently
      * @fulfill {*}
-     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     * @reject {string} - Error Reason. Expects:
      */
     closeThread(threadId) {
         return Thread.close(this, threadId);
     }
 
     /**
-     * TODO incomplete - does not seem to function yet
+     * Warning incomplete - may not function yet
      * Attempts to open a specific Thread. Requires a user to have a 'inline mod' permissions
      * @param {number} threadId - Id of Thread to open
      * @returns {Promise<*>} - Returns a unhandled response currently
      * @fulfill {*}
-     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     * @reject {string} - Error Reason. Expects:
      */
     openThread(threadId) {
         return Thread.open(this, threadId);
     }
 
     /**
-     * TODO incomplete - does not seem to function yet
+     * Warning incomplete - may not function yet
      * Attempts to delete a specific Thread. Requires a user to have a 'inline mod' permissions
      * @param {number} threadId - Id of Thread to close
      * @returns {Promise<*>} - Returns a unhandled response currently
      * @fulfill {*}
-     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     * @reject {string} - Error Reason. Expects:
      */
     deleteThread(threadId) {
         return Thread.delete(this, threadId);
@@ -633,7 +613,7 @@ class VBApi {
      * @param {object=} options
      * @returns {Promise<Inbox>} - Returns an Inbox object
      * @fulfill {Inbox}
-     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     * @reject {string} - Error Reason. Expects:
      */
     getInbox(options) {
         return Inbox.get(this, options);
@@ -646,10 +626,9 @@ class VBApi {
      * @param {object=} options
      * @param {string=} options.dateline - Ignore, already required at date
      * @param {number=} options.folderid - Ignore, already required at folderId
-     * TODO note additional options
      * @returns {Promise<void>} - Returns a unhandled response currently
      * @fulfill {void}
-     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     * @reject {string} - Error Reason. Expects:
      */
     emptyInbox(date, folderId, options) {
         return Inbox.empty(this, date, folderId, options)
@@ -662,7 +641,7 @@ class VBApi {
      * @param {number=} options.pmid - Ignore, already required at id
      * @returns {Promise<Message>} - Returns a Message object
      * @fulfill {Message}
-     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     * @reject {string} - Error Reason. Expects:
      */
     getMessage(id, options) {
         return Message.get(this, id, options);
@@ -678,10 +657,9 @@ class VBApi {
      * @param {string=} options.recipients - Ignore, already required at username
      * @param {string=} options.title - Ignore, already required at title
      * @param {string=} options.message - Ignore, already required at message
-     * TODO note additional options
-     * @returns {Promise<void>} - Successfully completes if sent. TODO: provide a better response
+     * @returns {Promise<void>} - Successfully completes if sent.
      * @fulfill {void}
-     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     * @reject {string} - Error Reason. Expects:
      */
     createMessage(username, title, message, options) {
         return Message.create(this, username, title, message, options)
@@ -702,7 +680,7 @@ class VBApi {
      * @param {string=} options.username - Ignore, already required at username
      * @returns {Promise<Member>} - Returns a Member object
      * @fulfill {Member}
-     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     * @reject {string} - Error Reason. Expects:
      */
     getMember(username, options) {
         return Member.get(this, username, options);

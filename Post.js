@@ -101,7 +101,7 @@ class Post {
      * @fulfill {*}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    static async newPost(VBApi, threadId, message, options) {
+    static async create(VBApi, threadId, message, options) {
         let that = VBApi;
         options = options || {};
         options.threadid = threadId || options.threadid || ''; //required
@@ -150,7 +150,7 @@ class Post {
      * @fulfill {*}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    static async editPost(VBApi, postId, message, options) {
+    static async edit(VBApi, postId, message, options) {
         let that = VBApi;
         options = options || {};
         options.postid = postId || options.postid || ''; //required
@@ -194,7 +194,7 @@ class Post {
      * @fulfill {*}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    static async deletePost(VBApi, postId, threadId, options) {
+    static async delete(VBApi, postId, threadId, options) {
         let that = VBApi;
         options = options || {};
         options.postid = postId || options.postid || ''; //required

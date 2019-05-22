@@ -93,7 +93,7 @@ class Thread {
      * @fulfill {*}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    static async newThread(VBApi, forumId, subject, message, options) {
+    static async create(VBApi, forumId, subject, message, options) {
         let that = VBApi;
         options = options || {};
         options.forumid = forumId || options.forumid || ''; //required
@@ -139,7 +139,7 @@ class Thread {
      * @fulfill {Thread}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    static async getThread(VBApi, threadId, options) {
+    static async get(VBApi, threadId, options) {
         let that = VBApi;
         options = options || {};
         options.threadid = threadId || options.threadid || ''; //required
@@ -177,7 +177,7 @@ class Thread {
      * @fulfill {*}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    static async closeThread(VBApi, threadId) {
+    static async close(VBApi, threadId) {
         let that = VBApi;
         let cookies = {};
         if (threadId) {
@@ -215,7 +215,7 @@ class Thread {
      * @fulfill {*}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    static async openThread(VBApi, threadId) {
+    static async open(VBApi, threadId) {
         let that = VBApi;
         let cookies = {};
         if (threadId) {
@@ -253,7 +253,7 @@ class Thread {
      * @fulfill {*}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    static async deleteThread(VBApi, threadId) {
+    static async delete(VBApi, threadId) {
         let that = VBApi;
         let cookies = {};
         if (threadId) {

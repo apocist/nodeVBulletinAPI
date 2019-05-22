@@ -475,7 +475,7 @@ class VBApi {
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
     getForums() {
-        return Forum.getForums(this);
+        return Forum.getHome(this);
     }
 
     /**
@@ -489,7 +489,7 @@ class VBApi {
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
     getForum(forumId, options) {
-        return Forum.getForum(this, forumId, options);
+        return Forum.get(this, forumId, options);
     }
 
 
@@ -507,7 +507,7 @@ class VBApi {
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
     newPost(threadId, message, options) {
-        return Post.newPost(this, threadId, message, options);
+        return Post.create(this, threadId, message, options);
     }
 
     /**
@@ -525,7 +525,7 @@ class VBApi {
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
     editPost(postId, message, options) {
-        return Post.editPost(this, postId, message, options);
+        return Post.edit(this, postId, message, options);
     }
 
     /**
@@ -543,7 +543,7 @@ class VBApi {
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
     deletePost(postId, threadId, options) {
-        return Post.deletePost(this, postId, threadId, options);
+        return Post.delete(this, postId, threadId, options);
     }
 
     /**
@@ -557,7 +557,7 @@ class VBApi {
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
     getThread(threadId, options) {
-        return Thread.getThread(this, threadId, options);
+        return Thread.get(this, threadId, options);
     }
 
     /**
@@ -576,7 +576,7 @@ class VBApi {
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
     newThread(forumId, subject, message, options) {
-        return Thread.newThread(this, forumId, subject, message, options);
+        return Thread.create(this, forumId, subject, message, options);
     }
 
     /**
@@ -588,7 +588,7 @@ class VBApi {
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
     closeThread(threadId) {
-        return Thread.closeThread(this, threadId);
+        return Thread.close(this, threadId);
     }
 
     /**
@@ -600,7 +600,7 @@ class VBApi {
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
     openThread(threadId) {
-        return Thread.openThread(this, threadId);
+        return Thread.open(this, threadId);
     }
 
     /**
@@ -612,7 +612,7 @@ class VBApi {
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
     deleteThread(threadId) {
-        return Thread.deleteThread(this, threadId);
+        return Thread.delete(this, threadId);
     }
 
     /**
@@ -620,7 +620,7 @@ class VBApi {
      * @see closeThread
      */
     modCloseThread(threadId) {
-        return Thread.closeThread(this, threadId);
+        return Thread.close(this, threadId);
     }
 
     /**
@@ -628,7 +628,7 @@ class VBApi {
      * @see openThread
      */
     modOpenThread(threadId) {
-        return Thread.openThread(this, threadId);
+        return Thread.open(this, threadId);
     }
 
     /**
@@ -636,7 +636,7 @@ class VBApi {
      * @see deleteThread
      */
     modDeleteThread(threadId) {
-        return Thread.deleteThread(this, threadId);
+        return Thread.delete(this, threadId);
     }
 
     /**
@@ -647,7 +647,7 @@ class VBApi {
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
     getInbox(options) {
-        return Inbox.getInbox(this, options);
+        return Inbox.get(this, options);
     }
 
     /**
@@ -663,7 +663,7 @@ class VBApi {
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
     emptyInbox(date, folderId, options) {
-        return Inbox.emptyInbox(this, date, folderId, options)
+        return Inbox.empty(this, date, folderId, options)
     }
 
     /**
@@ -676,7 +676,7 @@ class VBApi {
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
     getMessage(id, options) {
-        return Message.getMessage(this, id, options);
+        return Message.get(this, id, options);
     }
 
     /**
@@ -695,7 +695,7 @@ class VBApi {
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
     sendMessage(username, title, message, options) {
-        return Message.sendMessage(this, username, title, message, options)
+        return Message.create(this, username, title, message, options)
     }
 
     /**
@@ -708,7 +708,7 @@ class VBApi {
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
     getMember(username, options) {
-        return Member.getMember(this, username, options);
+        return Member.get(this, username, options);
     }
 }
 

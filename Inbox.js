@@ -110,7 +110,7 @@ class Inbox {
      * @fulfill {Inbox}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    static async getInbox(VBApi, options) {
+    static async get(VBApi, options) {
         let that = VBApi;
         options = options || {};
 
@@ -151,7 +151,7 @@ class Inbox {
      * @fulfill {void}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    static async emptyInbox(VBApi, date, folderId, options) {
+    static async empty(VBApi, date, folderId, options) {
         let that = VBApi;
         options = options || {};
         options.dateline = parseInt((date.getTime() / 1000).toFixed(0)) || options.dateline || ''; //required

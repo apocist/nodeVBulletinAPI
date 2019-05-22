@@ -155,7 +155,7 @@ class Member {
      * @fulfill {Member}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    static async getMember(VBApi, username, options) {
+    static async get(VBApi, username, options) {
         let that = VBApi;
         options = options || {};
         options.username = username || options.username || ''; //required

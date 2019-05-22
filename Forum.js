@@ -104,7 +104,7 @@ class Forum {
      * @fulfill {Forum[]}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    static async getForums(VBApi) {
+    static async getHome(VBApi) {
         let that = VBApi;
         return new Promise(async function (resolve, reject) {
             let forums = [];
@@ -139,7 +139,7 @@ class Forum {
      * @fulfill {Forum}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    static async getForum(VBApi, forumId, options) {
+    static async get(VBApi, forumId, options) {
         let that = VBApi;
         options = options || {};
         options.forumid = forumId || options.forumid || ''; //required

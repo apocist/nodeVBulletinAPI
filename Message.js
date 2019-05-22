@@ -120,7 +120,7 @@ class Message {
      * @fulfill {Message}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    static async getMessage(VBApi, id, options) {
+    static async get(VBApi, id, options) {
         let that = VBApi;
         options = options || {};
         options.pmid = id || options.pmid || ''; //required
@@ -165,7 +165,7 @@ class Message {
      * @fulfill {void}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    static async sendMessage(VBApi, username, title, message, options) {
+    static async create(VBApi, username, title, message, options) {
         let that = VBApi;
         options = options || {};
         options.recipients = username || options.recipients || ''; //required

@@ -1,7 +1,8 @@
 'use strict';
 const md5 = require('js-md5'),
-    os = require('os'),
     request = require('request'),
+    url = require('url'),
+    uuidV1 = require('uuid/v1'),
     _ = require('underscore'),
     Forum = require('./Forum'),
     Inbox = require('./Inbox'),
@@ -21,29 +22,39 @@ class VBApi {
      * @param {string} apiKey
      * @param {string} platformName
      * @param {string} platformVersion
-     * @param {object=} options - A fallback to the old style config
-     * @param {string=} options.apiUrl
-     * @param {string=} options.apiKey
-     * @param {string=} options.platformName
-     * @param {string=} options.platformVersion
      */
-    constructor(apiUrl, apiKey, platformName, platformVersion, options) {
-        this.defaultVars = {
-            baseUrl: '', //Needed for cookie related commands
-            apiUrl: '',
-            apiKey: '',
+    constructor(apiUrl, apiKey, platformName, platformVersion) {
+        /**
+         * The current status of the API connection to vBulletin server
+         * @type {boolean}
+         */
+        this.initialized = false;
+        let urlParts = url.parse(apiUrl);
+        /**
+         * @type {{baseUrl: string, apiUrl: (*|string), apiKey: (*|string), clientName: string, platformVersion: string, clientVersion, platformName: string, uniqueId: *}}
+         * @private
+         */
+        this.__connectionVars = {
+            baseUrl: `${urlParts.protocol}//${urlParts.hostname}/`,
+            apiUrl: apiUrl || '',
+            apiKey: apiKey,
             clientName: 'nodeVBulletinAPI',
             clientVersion: version,
-            uniqueId: ''
+            platformName: platformName || '',
+            platformVersion: platformVersion || '',
+            uniqueId: md5('nodeVBulletinAPI' + version + platformName + platformVersion + uuidV1()),
         };
 
-        this.clientSessionVars = {
+        /**
+         * @type {{apiVersion: string, apiAccessToken: string, sessionHash: string, apiClientId: string, secret: string, error: null||string}}
+         * @private
+         */
+        this.__clientSessionVars = {
             apiVersion: '',
             apiAccessToken: '',
-            sessionHash: '', // Unused?
+            sessionHash: '',
             apiClientId: '',
             secret: '',
-            inited: false,
             error: null
         };
 
@@ -66,46 +77,29 @@ class VBApi {
         this.__waitingForInitializationCallback = function () {
         }; // A blank callback to be filled in
 
-        options = options || {};
-        options.apiUrl = apiUrl || options.apiUrl || '';
-        options.apiKey = apiKey || options.apiKey || '';
-        options.platformName = platformName || options.platformName || '';
-        options.platformVersion = platformVersion || options.platformVersion || '';
-
         if (
-            options.apiUrl !== ''
-            && options.apiUrl !== ''
-            && options.platformName !== ''
-            && options.platformVersion !== ''
+            this.__connectionVars.apiKey !== ''
+            && this.__connectionVars.apiUrl !== ''
+            && this.__connectionVars.platformName !== ''
+            && this.__connectionVars.platformVersion !== ''
         ) {
-            this.__initialize(options);
+            this.__initialize();
         } else {
-            this.clientSessionVars.error = 'apiInit(): Initialization requires a `apiUrl`, `apiKey`, `platformName`, and `platformVersion`';
+            this.__clientSessionVars.error = 'apiInit(): Initialization requires a `apiUrl`, `apiKey`, `platformName`, and `platformVersion`';
             this.__waitingForInitializationCallback(false);
         }
     }
 
     /**
      * Initialize a vb api connection. This needs to be called for the first time
-     * @param {object} options
-     * @param {string} options.apiUrl
-     * @param {string} options.apiKey
-     * @param {string} options.platformName
-     * @param {string} options.platformVersion
      * @private
      */
-    __initialize(options) {
+    __initialize() {
         let that = this;
         // Run itself as a self invoked promise that is awaited by nothing. callMethod shall wait until this is finished
         (async function __initialize_self() {
             let error = null;
             let result = null;
-            let regex_url = /^(?:([A-Za-z]+):)?(\/{0,3})([0-9.\-A-Za-z]+)(?::(\d+))?(?:\/([^?#]*))?(?:\?([^#]*))?(?:#(.*))?$/;
-            let url_parts = regex_url.exec(options.apiUrl);
-            that.defaultVars.baseUrl = that.defaultVars.baseUrl || url_parts[1] + ':' + url_parts[2] + url_parts[3] + '/';
-            that.defaultVars.apiUrl = that.defaultVars.apiUrl || options.apiUrl;
-            that.defaultVars.apiKey = that.defaultVars.apiKey || options.apiKey;
-            that.defaultVars.uniqueId = that.defaultVars.uniqueId || md5(that.defaultVars.clientName + that.defaultVars.clientVersion + options.platformName + options.platformVersion + that.constructor.getMacAddress() + new Date().getTime());
 
             try {
                 /**
@@ -120,20 +114,14 @@ class VBApi {
                 let response = await that.callMethod({
                     method: 'api_init',
                     params: {
-                        clientname: that.defaultVars.clientName,
-                        clientversion: that.defaultVars.clientVersion,
-                        platformname: options.platformName,
-                        platformversion: options.platformVersion,
-                        uniqueid: that.defaultVars.uniqueId
+                        clientname: that.__connectionVars.clientName,
+                        clientversion: that.__connectionVars.clientVersion,
+                        platformname: that.__connectionVars.platformName,
+                        platformversion: that.__connectionVars.platformVersion,
+                        uniqueid: that.__connectionVars.uniqueId
                     }
                 });
 
-                that.clientSessionVars.apiVersion = '';
-                that.clientSessionVars.apiAccessToken = '';
-                that.clientSessionVars.sessionHash = '';
-                that.clientSessionVars.apiClientId = '';
-                that.clientSessionVars.secret = '';
-                that.clientSessionVars.inited = false;
                 if (
                     response.apiversion
                     && response.apiaccesstoken
@@ -141,23 +129,27 @@ class VBApi {
                     && response.apiclientid
                     && response.secret
                 ) {
-                    that.clientSessionVars.apiVersion = response.apiversion;
-                    that.clientSessionVars.apiAccessToken = response.apiaccesstoken;
-                    that.clientSessionVars.sessionHash = response.sessionhash;
-                    that.clientSessionVars.apiClientId = response.apiclientid;
-                    that.clientSessionVars.secret = response.secret;
-                    that.clientSessionVars.inited = true;
+                    that.__clientSessionVars = {
+                        apiVersion: response.apiversion,
+                        apiAccessToken: response.apiaccesstoken,
+                        sessionHash: response.sessionhash,
+                        apiClientId: response.apiclientid,
+                        secret: response.secret,
+                        error: null
+                    };
+                    that.initialized = true;
+
                     that.__waitingForInitializationCallback(true);
                     result = that;
                 }
 
                 if (result === null) {
-                    that.clientSessionVars.error = that.constructor.parseErrorMessage(response) || 'TODO ERROR (api connection did not return a session)';
+                    that.__clientSessionVars.error = that.constructor.parseErrorMessage(response) || 'TODO ERROR (api connection did not return a session)';
                     that.__waitingForInitializationCallback(false);
-                    error = that.clientSessionVars.error;
+                    error = that.__clientSessionVars.error;
                 }
             } catch (e) {
-                that.clientSessionVars.error = e;
+                that.__clientSessionVars.error = e;
                 that.__waitingForInitializationCallback(false);
                 // reject(e);
                 error = e;
@@ -177,10 +169,10 @@ class VBApi {
         let that = this;
         waitTime = waitTime || 5;
         return new Promise(async function (resolve, reject) {
-            if (that.clientSessionVars.inited === true) {
+            if (that.initialized) {
                 resolve();
-            } else if (that.clientSessionVars.error !== null) {
-                reject(that.clientSessionVars.error);
+            } else if (that.__clientSessionVars.error !== null) {
+                reject(that.__clientSessionVars.error);
             } else {
                 /**
                  * @type {number}
@@ -190,10 +182,10 @@ class VBApi {
                     function () {
                         that.__waitingForInitializationCallback = function () {
                         }; // Set back to a blank function
-                        if (that.clientSessionVars.inited === true) {
+                        if (that.initialized) {
                             resolve();
                         } else {
-                            reject('Connection could not be achieved due to timed out', that.clientSessionVars.error);
+                            reject('Connection could not be achieved due to timed out', that.__clientSessionVars.error);
                         }
 
                     },
@@ -208,7 +200,7 @@ class VBApi {
                         clearTimeout(that.__waitingForInitializationTimeout);
                     }
                     if (success === false) {
-                        reject(that.clientSessionVars.error);
+                        reject(that.__clientSessionVars.error);
                     } else {
                         resolve();
                     }
@@ -252,16 +244,16 @@ class VBApi {
                 // Gather our sessions variables together
                 let reqParams = {
                     api_m: options.method,
-                    api_c: that.clientSessionVars.apiClientId, //clientId
-                    api_s: that.clientSessionVars.apiAccessToken, //apiAccessToken (may be empty)
-                    api_v: that.clientSessionVars.apiVersion //api version
+                    api_c: that.__clientSessionVars.apiClientId, //clientId
+                    api_s: that.__clientSessionVars.apiAccessToken, //apiAccessToken (may be empty)
+                    api_v: that.__clientSessionVars.apiVersion //api version
                 };
                 _.extend(reqParams, options.params); // Combine the arrays
 
                 if (sign === true) {
                     // Generate a signature to validate that we are authenticated
-                    if (that.clientSessionVars.inited) {
-                        reqParams.api_sig = md5(that.clientSessionVars.apiAccessToken + that.clientSessionVars.apiClientId + that.clientSessionVars.secret + that.defaultVars.apiKey);
+                    if (that.initialized) {
+                        reqParams.api_sig = md5(that.__clientSessionVars.apiAccessToken + that.__clientSessionVars.apiClientId + that.__clientSessionVars.secret + that.__connectionVars.apiKey);
                     } else {
                         reject('callMethod(): requires initialization. Not initialized');
                         return;
@@ -270,10 +262,10 @@ class VBApi {
 
                 // Create a valid http Request
                 let reqOptions = {
-                    url: that.defaultVars.apiUrl,
+                    url: that.__connectionVars.apiUrl,
                     formData: reqParams,
                     headers: {
-                        'User-Agent': that.defaultVars.clientName
+                        'User-Agent': that.__connectionVars.clientName
                     }
                 };
 
@@ -284,7 +276,7 @@ class VBApi {
                         if (options.cookies.hasOwnProperty(variable)) {
                             let cookieString = variable + '=' + options.cookies[variable];
                             let cookie = request.cookie(cookieString);
-                            j.setCookie(cookie, that.defaultVars.baseUrl);
+                            j.setCookie(cookie, that.__connectionVars.baseUrl);
                         }
                     }
                     reqOptions.jar = j;// Adds cookies to the request
@@ -310,13 +302,13 @@ class VBApi {
     /**
      * Attempts to log in a user.
      * @param {string} username - Username
-     * @param {string} password - clear text password TODO need to secure this more?
+     * @param {string} password - clear text password
      * @param {object=} options
      * @param {string=} options.username - Ignore, already required at username
      * @param {string=} options.password - Ignore, already required at password
      * @returns {Promise<UserVars>}
      * @fulfill {UserVars}
-     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     * @reject {string} - Error Reason. Expects:
      */
     async login(username, password, options) {
         options = options || {};
@@ -329,13 +321,13 @@ class VBApi {
      *
      * Attempts to log in a user. Requires the password to be pre md5 hashed.
      * @param {string} username - Username
-     * @param {string} password - MD5 hashed password TODO need to secure this more?
+     * @param {string} password - MD5 hashed password
      * @param {object=} options
      * @param {string=} options.username - Ignore, already required at username
      * @param {string=} options.password - Ignore, already required at password
      * @returns {Promise<UserVars>}
      * @fulfill {UserVars}
-     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     * @reject {string} - Error Reason. Expects:
      */
     async loginMD5(username, password, options) {
         let that = this;
@@ -367,9 +359,6 @@ class VBApi {
                     }
                 }
                 if (error === 'redirect_login') {
-                    error = null;
-                }
-                if (error === null) {
                     resolve(that.userSessionVars);
                 } else {
                     reject(error);
@@ -419,36 +408,6 @@ class VBApi {
     }
 
     /**
-     * Return a Mac address of a network interface for machine identification
-     * @returns {string} macAddress
-     */
-    static getMacAddress() {
-        let interfaces = os.networkInterfaces();
-        let address = '';
-        loop1:
-            for (let k in interfaces) {
-                if (interfaces.hasOwnProperty(k)) {
-                    for (let k2 in interfaces[k]) {
-                        if (interfaces[k].hasOwnProperty(k2)) {
-                            let addressI = interfaces[k][k2];
-                            if (
-                                (addressI.family === 'IPv4' || addressI.family === 'IPv6')
-                                && addressI.hasOwnProperty('internal')
-                                && addressI.internal === false
-                                && addressI.hasOwnProperty('mac')
-                                && addressI.mac !== '00:00:00:00:00:00'
-                            ) {
-                                address = addressI.mac;
-                                break loop1;
-                            }
-                        }
-                    }
-                }
-            }
-        return address;
-    }
-
-    /**
      *
      * @param {object} response - Response object from callMethod()
      * @returns {string || null} status - Error message
@@ -472,10 +431,10 @@ class VBApi {
      * List every Forum and sub forum available to the user.
      * @returns {Promise<Forum[]>} - Array of Forum objects
      * @fulfill {Forum[]}
-     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     * @reject {string} - Error Reason. Expects:
      */
     getForums() {
-        return Forum.getForums(this);
+        return Forum.getHome(this);
     }
 
     /**
@@ -483,13 +442,12 @@ class VBApi {
      * @param {number} forumId - Forum id
      * @param {object=} options - Secondary Options
      * @param {number=} options.forumid - Ignore, already required at forumId
-     * TODO note additional options
      * @returns {Promise<Forum>} - Returns a Forum object
      * @fulfill {Forum}
-     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     * @reject {string} - Error Reason. Expects:
      */
     getForum(forumId, options) {
-        return Forum.getForum(this, forumId, options);
+        return Forum.get(this, forumId, options);
     }
 
 
@@ -501,13 +459,20 @@ class VBApi {
      * @param {boolean=} options.signature  - Optionally append your signature
      * @param {number=} options.threadid - Ignore, already required at threadId
      * @param {string=} options.message - Ignore, already required at message
-     * TODO note additional options
      * @returns {Promise<*>} - Returns a unhandled response currently
      * @fulfill {*}
-     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     * @reject {string} - Error Reason. Expects:
+     */
+    createPost(threadId, message, options) {
+        return Post.create(this, threadId, message, options);
+    }
+
+    /**
+     * @deprecated as of 1.4.1
+     * @see createPost
      */
     newPost(threadId, message, options) {
-        return Post.newPost(this, threadId, message, options);
+        return Post.create(this, threadId, message, options);
     }
 
     /**
@@ -519,17 +484,16 @@ class VBApi {
      * @param {boolean=} options.signature - Optionally append your signature
      * @param {number=} options.postid - Ignore, already required at postId
      * @param {string=} options.message - Ignore, already required at message
-     * TODO note additional options
      * @returns {Promise<*>} - Returns a unhandled response currently
      * @fulfill {*}
-     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     * @reject {string} - Error Reason. Expects:
      */
     editPost(postId, message, options) {
-        return Post.editPost(this, postId, message, options);
+        return Post.edit(this, postId, message, options);
     }
 
     /**
-     * TODO untested - does not seem to function yet
+     * Warning untested - does not seem to function yet
      * Attempts to delete an existing Post
      * @param {number} postId - Post id
      * @param {number} threadId - Thread id
@@ -537,13 +501,12 @@ class VBApi {
      * @param {string=} options.reason - Reason for deleting
      * @param {number=} options.postid - Ignore, already required at postId
      * @param {number=} options.threadid - Ignore, already required at threadId
-     * TODO note additional options
      * @returns {Promise<*>} - Returns a unhandled response currently
      * @fulfill {*}
-     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     * @reject {string} - Error Reason. Expects:
      */
     deletePost(postId, threadId, options) {
-        return Post.deletePost(this, postId, threadId, options);
+        return Post.delete(this, postId, threadId, options);
     }
 
     /**
@@ -551,13 +514,12 @@ class VBApi {
      * @param {number} threadId - Thread id
      * @param {object=} options - Secondary Options
      * @param {number=} options.threadid - Ignore, already required at threadId
-     * TODO note additional options
      * @returns {Promise<Thread>} - Returns a Thread object
      * @fulfill {Thread}
-     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     * @reject {string} - Error Reason. Expects:
      */
     getThread(threadId, options) {
-        return Thread.getThread(this, threadId, options);
+        return Thread.get(this, threadId, options);
     }
 
     /**
@@ -570,49 +532,56 @@ class VBApi {
      * @param {number=} options.forumid - Ignore, already required at postId
      * @param {string=} options.subject - Ignore, already required at postId
      * @param {string=} options.message - Ignore, already required at postId
-     * TODO note additional options
      * @returns {Promise<*>} - Returns a unhandled response currently
      * @fulfill {*}
-     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     * @reject {string} - Error Reason. Expects:
      */
-    newThread(forumId, subject, message, options) {
-        return Thread.newThread(this, forumId, subject, message, options);
+    createThread(forumId, subject, message, options) {
+        return Thread.create(this, forumId, subject, message, options);
     }
 
     /**
-     * TODO incomplete - does not seem to function yet
+     * @deprecated as of 1.4.1
+     * @see createThread
+     */
+    newThread(forumId, subject, message, options) {
+        return Thread.create(this, forumId, subject, message, options);
+    }
+
+    /**
+     * Warning untested - may not function yet
      * Attempts to close a specific Thread. Requires a user to have a 'inline mod' permissions
      * @param {number} threadId - Id of Thread to close
      * @returns {Promise<*>} - Returns a unhandled response currently
      * @fulfill {*}
-     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     * @reject {string} - Error Reason. Expects:
      */
     closeThread(threadId) {
-        return Thread.closeThread(this, threadId);
+        return Thread.close(this, threadId);
     }
 
     /**
-     * TODO incomplete - does not seem to function yet
+     * Warning incomplete - may not function yet
      * Attempts to open a specific Thread. Requires a user to have a 'inline mod' permissions
      * @param {number} threadId - Id of Thread to open
      * @returns {Promise<*>} - Returns a unhandled response currently
      * @fulfill {*}
-     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     * @reject {string} - Error Reason. Expects:
      */
     openThread(threadId) {
-        return Thread.openThread(this, threadId);
+        return Thread.open(this, threadId);
     }
 
     /**
-     * TODO incomplete - does not seem to function yet
+     * Warning incomplete - may not function yet
      * Attempts to delete a specific Thread. Requires a user to have a 'inline mod' permissions
      * @param {number} threadId - Id of Thread to close
      * @returns {Promise<*>} - Returns a unhandled response currently
      * @fulfill {*}
-     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     * @reject {string} - Error Reason. Expects:
      */
     deleteThread(threadId) {
-        return Thread.deleteThread(this, threadId);
+        return Thread.delete(this, threadId);
     }
 
     /**
@@ -620,7 +589,7 @@ class VBApi {
      * @see closeThread
      */
     modCloseThread(threadId) {
-        return Thread.closeThread(this, threadId);
+        return Thread.close(this, threadId);
     }
 
     /**
@@ -628,7 +597,7 @@ class VBApi {
      * @see openThread
      */
     modOpenThread(threadId) {
-        return Thread.openThread(this, threadId);
+        return Thread.open(this, threadId);
     }
 
     /**
@@ -636,7 +605,7 @@ class VBApi {
      * @see deleteThread
      */
     modDeleteThread(threadId) {
-        return Thread.deleteThread(this, threadId);
+        return Thread.delete(this, threadId);
     }
 
     /**
@@ -644,10 +613,10 @@ class VBApi {
      * @param {object=} options
      * @returns {Promise<Inbox>} - Returns an Inbox object
      * @fulfill {Inbox}
-     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     * @reject {string} - Error Reason. Expects:
      */
     getInbox(options) {
-        return Inbox.getInbox(this, options);
+        return Inbox.get(this, options);
     }
 
     /**
@@ -657,13 +626,12 @@ class VBApi {
      * @param {object=} options
      * @param {string=} options.dateline - Ignore, already required at date
      * @param {number=} options.folderid - Ignore, already required at folderId
-     * TODO note additional options
      * @returns {Promise<void>} - Returns a unhandled response currently
      * @fulfill {void}
-     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     * @reject {string} - Error Reason. Expects:
      */
     emptyInbox(date, folderId, options) {
-        return Inbox.emptyInbox(this, date, folderId, options)
+        return Inbox.empty(this, date, folderId, options)
     }
 
     /**
@@ -673,10 +641,10 @@ class VBApi {
      * @param {number=} options.pmid - Ignore, already required at id
      * @returns {Promise<Message>} - Returns a Message object
      * @fulfill {Message}
-     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     * @reject {string} - Error Reason. Expects:
      */
     getMessage(id, options) {
-        return Message.getMessage(this, id, options);
+        return Message.get(this, id, options);
     }
 
     /**
@@ -689,13 +657,20 @@ class VBApi {
      * @param {string=} options.recipients - Ignore, already required at username
      * @param {string=} options.title - Ignore, already required at title
      * @param {string=} options.message - Ignore, already required at message
-     * TODO note additional options
-     * @returns {Promise<void>} - Successfully completes if sent. TODO: provide a better response
+     * @returns {Promise<void>} - Successfully completes if sent.
      * @fulfill {void}
-     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     * @reject {string} - Error Reason. Expects:
+     */
+    createMessage(username, title, message, options) {
+        return Message.create(this, username, title, message, options)
+    }
+
+    /**
+     * @deprecated as of 1.4.1
+     * @see createMessage
      */
     sendMessage(username, title, message, options) {
-        return Message.sendMessage(this, username, title, message, options)
+        return Message.create(this, username, title, message, options)
     }
 
     /**
@@ -705,10 +680,10 @@ class VBApi {
      * @param {string=} options.username - Ignore, already required at username
      * @returns {Promise<Member>} - Returns a Member object
      * @fulfill {Member}
-     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     * @reject {string} - Error Reason. Expects:
      */
     getMember(username, options) {
-        return Member.getMember(this, username, options);
+        return Member.get(this, username, options);
     }
 }
 

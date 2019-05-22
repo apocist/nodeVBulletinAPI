@@ -1,0 +1,17 @@
+checks:
+  javascript:
+    no_var: true
+    eqeqeq: true
+
+build:
+  nodes:
+    analysis:
+      tests:
+        override:
+          - js-scrutinizer-run
+      environment:
+        node:
+          version: 12.2.0
+    tests: true
+build_failure_conditions:
+  - 'elements.rating(<= D).new.exists'

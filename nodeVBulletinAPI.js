@@ -506,6 +506,14 @@ class VBApi {
      * @fulfill {*}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
+    createPost(threadId, message, options) {
+        return Post.create(this, threadId, message, options);
+    }
+
+    /**
+     * @deprecated as of 1.4.1
+     * @see createPost
+     */
     newPost(threadId, message, options) {
         return Post.create(this, threadId, message, options);
     }
@@ -574,6 +582,14 @@ class VBApi {
      * @returns {Promise<*>} - Returns a unhandled response currently
      * @fulfill {*}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     */
+    createThread(forumId, subject, message, options) {
+        return Thread.create(this, forumId, subject, message, options);
+    }
+
+    /**
+     * @deprecated as of 1.4.1
+     * @see createThread
      */
     newThread(forumId, subject, message, options) {
         return Thread.create(this, forumId, subject, message, options);
@@ -693,6 +709,14 @@ class VBApi {
      * @returns {Promise<void>} - Successfully completes if sent. TODO: provide a better response
      * @fulfill {void}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     */
+    createMessage(username, title, message, options) {
+        return Message.create(this, username, title, message, options)
+    }
+
+    /**
+     * @deprecated as of 1.4.1
+     * @see createMessage
      */
     sendMessage(username, title, message, options) {
         return Message.create(this, username, title, message, options)

@@ -1,6 +1,5 @@
 'use strict';
 const md5 = require('js-md5'),
-    os = require('os'),
     request = require('request'),
     _ = require('underscore'),
     Forum = require('./Forum'),
@@ -9,6 +8,7 @@ const md5 = require('js-md5'),
     Message = require('./Message'),
     Post = require('./Post'),
     Thread = require('./Thread'),
+    uuidV1 = require('uuid/v1'),
     {version} = require('./package.json');
 
 /**
@@ -105,7 +105,7 @@ class VBApi {
             that.defaultVars.baseUrl = that.defaultVars.baseUrl || url_parts[1] + ':' + url_parts[2] + url_parts[3] + '/';
             that.defaultVars.apiUrl = that.defaultVars.apiUrl || options.apiUrl;
             that.defaultVars.apiKey = that.defaultVars.apiKey || options.apiKey;
-            that.defaultVars.uniqueId = that.defaultVars.uniqueId || md5(that.defaultVars.clientName + that.defaultVars.clientVersion + options.platformName + options.platformVersion + that.constructor.getMacAddress() + new Date().getTime());
+            that.defaultVars.uniqueId = that.defaultVars.uniqueId || md5(that.defaultVars.clientName + that.defaultVars.clientVersion + options.platformName + options.platformVersion + uuidV1() + new Date().getTime());
 
             try {
                 /**
@@ -416,36 +416,6 @@ class VBApi {
                 resolve(true)
             }
         });
-    }
-
-    /**
-     * Return a Mac address of a network interface for machine identification
-     * @returns {string} macAddress
-     */
-    static getMacAddress() {
-        let interfaces = os.networkInterfaces();
-        let address = '';
-        loop1:
-            for (let k in interfaces) {
-                if (interfaces.hasOwnProperty(k)) {
-                    for (let k2 in interfaces[k]) {
-                        if (interfaces[k].hasOwnProperty(k2)) {
-                            let addressI = interfaces[k][k2];
-                            if (
-                                (addressI.family === 'IPv4' || addressI.family === 'IPv6')
-                                && addressI.hasOwnProperty('internal')
-                                && addressI.internal === false
-                                && addressI.hasOwnProperty('mac')
-                                && addressI.mac !== '00:00:00:00:00:00'
-                            ) {
-                                address = addressI.mac;
-                                break loop1;
-                            }
-                        }
-                    }
-                }
-            }
-        return address;
     }
 
     /**

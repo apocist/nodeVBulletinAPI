@@ -1,5 +1,5 @@
 'use strict';
-const VBApi = require('./nodeVBulletinAPI');
+const {VBApi} = require('./dist/umd/VBApi');
 
 example();
 

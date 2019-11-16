@@ -37,3 +37,6 @@ package-lock.json
 
 # private
 private.js
+
+# Distribution provided in npmjs
+dist/

@@ -1,23 +1,51 @@
 {
   "name": "node-vbulletin-api",
-  "author": "Apocist",
   "desciprtion": "nodejs API interface to communicate with VBulletin servers",
-  "version": "1.4.0",
+  "version": "2.0.0-beta.0",
+  "private": true,
   "license": "GPL-3.0",
-  "private": false,
+  "homepage": "https://github.com/apocist/nodeVBulletinAPI",
+  "author": "Opal 'Apocist' Davis <apocist@yahoo.com> (http://github,com/apocist)",
+  "contributors": [
+    {
+      "name": "Opal 'Apocist' David",
+      "url": "http://github,com/apocist"
+    }
+  ],
   "engines": {
     "node": ">=12"
   },
-  "scripts": {},
-  "main": "nodeVBulletinAPI.js",
+  "main": "dist/umd/VBApi.js",
+  "browser": "dist/umd/VBApi.js",
+  "module": "dist/umd/VBApi.js",
+  "types":"dist/umd/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/apocist/nodeVBulletinAPI.git"
+  },
+  "bugs": {
+    "url": "https://github.com/apocist/nodeVBulletinAPI/issues"
+  },
+  "scripts": {
+    "build": "concurrently \"node -e \\\"console.log('\\x1b[32m\\x1b[46m%s\\x1b[0m', ' Building All Distributions ')\\\"\" \"npm:build:*\"",
+    "build:system": "tsc -p tsconfig.system.json",
+    "build:umd": "tsc -p tsconfig.umd.json",
+    "test": "echo \"Error: no tests installed\" && exit 1"
+  },
   "dependencies": {
     "js-md5": "^0.7.3",
+    "lodash": "^4.17.15",
     "request": "^2.88.0",
     "underscore": "^1.9.1",
     "uuid": "^3.3.2"
   },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/apocist/nodeVBulletinAPI"
+  "devDependencies": {
+    "@types/js-md5": "^0.4.2",
+    "@types/lodash": "^4.14.148",
+    "@types/request": "^2.48.3",
+    "@types/uuid": "^3.4.6",
+    "concurrently": "^5.0.0",
+    "tslint": "^5.20.1",
+    "typescript": "^3.7.2"
   }
 }

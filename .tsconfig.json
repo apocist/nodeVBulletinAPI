@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "esModuleInterop": true,
+    "moduleResolution": "node",
+    "sourceMap": true,
+    "removeComments": true,
+    "declaration": true
+  },
+  "lib": [],
+  "include": [
+    "src/**/*.ts"
+  ]
+}

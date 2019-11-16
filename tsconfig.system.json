@@ -1,0 +1,12 @@
+{
+  "extends": "./.tsconfig",
+  "compilerOptions": {
+    "module": "system",
+    "target": "es6",
+    "outDir": "dist/system"
+  },
+  "lib": [
+    "es2018",
+    "dom"
+  ]
+}

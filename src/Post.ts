@@ -19,7 +19,7 @@ export interface PostDeleteOptions extends CallMethodParameters {
     reason?: string,
 }
 
-interface RawPostData {
+export interface RawPostData {
     post: {
         postid: string,
         threadid: string,
@@ -46,10 +46,7 @@ export class Post {
     signature: string;
     userId: number;
     username: string;
-    /**
-     *
-     * @param {RawPostData} rawData
-     */
+
     constructor(rawData: RawPostData) {
         this.rawData = rawData;
         this.parseData();
@@ -58,7 +55,7 @@ export class Post {
 
     private parseData() {
         if (this.rawData) {
-            let rawData = this.rawData;
+            const rawData = this.rawData;
 
             if (rawData.hasOwnProperty('post')) {
                 let postData = rawData.post;
@@ -147,7 +144,7 @@ export class Post {
     }
 
     /**
-     *
+     * Edit an existing Post
      * @param vbApi - VBApi
      * @param postId - Post id
      * @param message - Post Message

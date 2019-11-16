@@ -37,12 +37,14 @@ export interface CallMethodParameters {
     uniqueid?: string
 }
 
+export interface CallMethodCookies {
+    [key: string]: string | number
+}
+
 export interface CallMethodOptions {
     method: string
     params?: CallMethodParameters,
-    cookies?: {
-        [key: string]: string
-    }
+    cookies?: CallMethodCookies
 }
 
 interface VbQuery {

@@ -1,7 +1,7 @@
 import axios, {AxiosRequestConfig} from 'axios';
 import * as md5 from 'js-md5';
 import * as _ from 'lodash';
-import * as request from 'request';
+import qs from 'qs';
 import * as url from 'url';
 import * as uuid from 'uuid';
 
@@ -278,23 +278,17 @@ export class VBApi {
                     }
                 }
 
-                // Create a valid http Request
-                const reqOptions: request.Options = {
+                const reqOptions: AxiosRequestConfig = {
+                    method: 'post',
                     url: that.connectionVars.apiUrl,
-                    formData: reqParams,
+                    data: qs.stringify(reqParams),
                     headers: {
-                        'User-Agent': that.connectionVars.clientName
+                        'User-Agent': that.connectionVars.clientName,
+                        'content-type': 'application/x-www-form-urlencoded'
                     }
                 };
 
-                /*const reqOptions: AxiosRequestConfig = {
-                    url: that.connectionVars.apiUrl,
-                    data: reqParams,
-                    headers: {
-                        'User-Agent': that.connectionVars.clientName
-                    }
-                };*/
-
+                // FIXME need axios to handle cookies. try https://codewithhugo.com/pass-cookies-axios-fetch-requests/
                 // Some command require adding a cookie, we'll do that here
                 /*if (options.cookies) {
                     const j = request.jar();
@@ -308,19 +302,12 @@ export class VBApi {
                     reqOptions.jar = j; // Adds cookies to the request
                 }*/
 
-                request.post(
-                // axios.post(
-                    reqOptions,
-                    // tslint:disable-next-line:only-arrow-functions
-                    function(error, response, body) {
-                        if (!error && response.statusCode === 200) {
-                            resolve(JSON.parse(body));
-                        } else {
-                            // console.log('No response');
-                            reject('callMethod(): no response.');
-                        }
-                    }
-                );
+                const response = await axios.request(reqOptions);
+                if (response.status === 200 && typeof(response.data) !== 'string') {
+                    resolve(response.data);
+                } else {
+                    reject('callMethod(): no response.');
+                }
             } catch (e) {
                 reject(e);
             }

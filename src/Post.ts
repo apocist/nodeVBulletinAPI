@@ -60,13 +60,13 @@ export class Post {
             if (rawData.hasOwnProperty('post')) {
                 let postData = rawData.post;
                 if (postData.hasOwnProperty('postid')) {
-                    this.id = parseInt(postData.postid);
+                    this.id = parseInt(postData.postid, 10);
                 }
                 if (postData.hasOwnProperty('threadid')) {
-                    this.threadId = parseInt(postData.threadid);
+                    this.threadId = parseInt(postData.threadid, 10);
                 }
                 if (postData.hasOwnProperty('posttime')) {
-                    this.postTime = parseInt(postData.posttime);
+                    this.postTime = parseInt(postData.posttime, 10);
                 }
                 if (postData.hasOwnProperty('title')) {
                     this.title = postData.title;
@@ -86,7 +86,7 @@ export class Post {
 
                 //TODO handle users
                 if (postData.hasOwnProperty('userid')) {
-                    this.userId = parseInt(postData.userid);
+                    this.userId = parseInt(postData.userid, 10);
                 }
                 if (postData.hasOwnProperty('username')) {
                     this.username = postData.username;
@@ -114,10 +114,8 @@ export class Post {
         options = options || {};
         options.threadid = threadId || options.threadid || 0; //required
         options.message = message || options.message || ''; //required
-        if (options.signature === true) {
-            //System only handle 1 or 0. defaults to 0
-            options.signature = '1';
-        }
+        options.signature = options.signature === true ? '1' : '0'; //System only handle 1 or 0. defaults to 0
+
 
         return new Promise(async function (resolve, reject) {
             try {
@@ -159,10 +157,7 @@ export class Post {
         options = options || {};
         options.postid = postId || options.postid || 0; //required
         options.message = message || options.message || ''; //required
-        if (options.signature === true) {
-            //System only handle 1 or 0. defaults to 0
-            options.signature = '1';
-        }
+        options.signature = options.signature === true ? '1' : '0'; //System only handle 1 or 0. defaults to 0
 
         return new Promise(async function (resolve, reject) {
             try {

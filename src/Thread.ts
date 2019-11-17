@@ -31,9 +31,6 @@ export class Thread {
     title: string;
     posts: Post[] = [];
 
-    /**
-     * @param {RawThreadData} rawData
-     */
     constructor(rawData: RawThreadData) {
         this.rawData = rawData;
         this.parseData();
@@ -48,13 +45,13 @@ export class Thread {
             if (rawData.hasOwnProperty('thread')) {
                 let threadData = rawData.thread;
                 if (threadData.hasOwnProperty('forumid')) {
-                    this.forumId = parseInt(threadData.forumid);
+                    this.forumId = parseInt(threadData.forumid, 10);
                 }
                 if (threadData.hasOwnProperty('forumtitle')) {
                     this.forumTitle = threadData.forumtitle;
                 }
                 if (threadData.hasOwnProperty('threadid')) {
-                    this.id = parseInt(threadData.threadid);
+                    this.id = parseInt(threadData.threadid, 10);
                 }
                 if (threadData.hasOwnProperty('title')) {
                     this.title = threadData.title;
@@ -93,11 +90,7 @@ export class Thread {
         options.forumid = forumId || options.forumid || 0; //required
         options.subject = subject || options.subject || ''; //required
         options.message = message || options.message || ''; //required
-
-        if (options.signature === true) {
-            //System only handle 1 or 0. defaults to 0
-            options.signature = '1'; // FIXME This didn't seem to work
-        }
+        options.signature = options.signature === true ? '1' : '0'; // FIXME This didn't seem to work
 
         return new Promise(async function (resolve, reject) {
             try {

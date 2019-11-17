@@ -1,0 +1,12 @@
+{
+  "extends": "./.tsconfig",
+  "compilerOptions": {
+    "module": "esnext",
+    "target": "es6",
+    "outDir": "dist/esnext"
+  },
+  "lib": [
+    "es2018",
+    "dom"
+  ]
+}

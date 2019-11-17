@@ -1,3 +1,4 @@
+import axios, {AxiosRequestConfig} from 'axios';
 import * as md5 from 'js-md5';
 import * as _ from 'lodash';
 import * as request from 'request';
@@ -286,8 +287,16 @@ export class VBApi {
                     }
                 };
 
+                /*const reqOptions: AxiosRequestConfig = {
+                    url: that.connectionVars.apiUrl,
+                    data: reqParams,
+                    headers: {
+                        'User-Agent': that.connectionVars.clientName
+                    }
+                };*/
+
                 // Some command require adding a cookie, we'll do that here
-                if (options.cookies) {
+                /*if (options.cookies) {
                     const j = request.jar();
                     for (const variable in options.cookies) {
                         if (options.cookies.hasOwnProperty(variable)) {
@@ -297,9 +306,10 @@ export class VBApi {
                         }
                     }
                     reqOptions.jar = j; // Adds cookies to the request
-                }
+                }*/
 
                 request.post(
+                // axios.post(
                     reqOptions,
                     // tslint:disable-next-line:only-arrow-functions
                     function(error, response, body) {

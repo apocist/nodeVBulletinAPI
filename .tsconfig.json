@@ -2,6 +2,7 @@
   "compilerOptions": {
     "esModuleInterop": true,
     "moduleResolution": "node",
+    "importHelpers": true,
     "sourceMap": true,
     "removeComments": true,
     "preserveConstEnums": true,

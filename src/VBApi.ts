@@ -468,3 +468,7 @@ export class VBApi {
         return Post.deletePost(this, postId, threadId, options);
     }
 }
+
+export class FetchableObject {
+
+}

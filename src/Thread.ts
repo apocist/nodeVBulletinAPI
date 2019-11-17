@@ -27,6 +27,9 @@ export class Thread {
     private readonly vbApi: VBApi;
     private rawData: RawThreadData;
 
+    fetched: boolean = false;
+    fetchTime: Date;
+
     id: number;
     title: string;
     forumId: number;
@@ -69,11 +72,40 @@ export class Thread {
                     this.posts.push(new Post(this.vbApi, postData));
                 });
             }
+
+            this.fetched = true;
+            this.fetchTime = new Date();
         }
     }
 
     private cleanup() {
         delete this.rawData;
+    }
+
+    /**
+     * List detailed information about the current Thread and it's Posts
+     * @param vbApi - VBApi
+     * @param threadId - Thread id
+     * @param options - Secondary Options
+     * @TODO note additional options
+     * @fulfill {this}
+     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     */
+    async get(vbApi: VBApi, threadId: number, options?: ThreadGetOptions): Promise<this> {
+        let threadData = null;
+        try {
+            threadData = await Thread.getRawThreadData(vbApi, threadId, options);
+        } catch (e) {
+            throw(e);
+        }
+
+        if (threadData == null) {
+            throw('Not Found');
+        }
+        this.rawData = threadData;
+        this.parseData();
+        this.cleanup();
+        return this;
     }
 
     /**
@@ -88,7 +120,7 @@ export class Thread {
      * @fulfill {*}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    static async create(vbApi: VBApi, forumId: number, subject: string, message: string, options?: ThreadCreateOptions) {
+    static async createThread(vbApi: VBApi, forumId: number, subject: string, message: string, options?: ThreadCreateOptions) {
         options = options || {};
         options.forumid = forumId || options.forumid || 0; //required
         options.subject = subject || options.subject || ''; //required
@@ -126,14 +158,14 @@ export class Thread {
      * @param threadId - Thread id
      * @param options - Secondary Options
      * @TODO note additional options
-     * @fulfill {Thread}
+     * @fulfill {RawThreadData}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    static async get(vbApi: VBApi, threadId: number, options?: ThreadGetOptions): Promise<Thread> {
+    static async getRawThreadData(vbApi: VBApi, threadId: number, options?: ThreadGetOptions): Promise<RawThreadData> {
         options = options || {};
         options.threadid = threadId || options.threadid || 0; //required
 
-        let thread = null;
+        let threadData = null;
         try {
             let response = await vbApi.callMethod({
                 method: 'showthread',
@@ -144,16 +176,36 @@ export class Thread {
                 response
                 && response.hasOwnProperty('response')
             ) {
-                thread = new Thread(vbApi, response.response);
+                threadData = response.response;
             }
         } catch (e) {
             throw(e);
         }
 
-        if (thread == null) {
+        return threadData;
+    }
+
+    /**
+     * List detailed information about a Thread and it's Posts
+     * @param vbApi - VBApi
+     * @param threadId - Thread id
+     * @param options - Secondary Options
+     * @TODO note additional options
+     * @fulfill {Thread}
+     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     */
+    static async getThread(vbApi: VBApi, threadId: number, options?: ThreadGetOptions): Promise<Thread> {
+        let threadData = null;
+        try {
+            threadData = await Thread.getRawThreadData(vbApi, threadId, options);
+        } catch (e) {
+            throw(e);
+        }
+
+        if (threadData == null) {
             throw('Not Found');
         }
-        return thread;
+        return new Thread(vbApi, threadData);
     }
 
     /**
@@ -164,7 +216,7 @@ export class Thread {
      * @fulfill {*}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    static async close(vbApi: VBApi, threadId: number) {
+    static async closeThread(vbApi: VBApi, threadId: number) {
         let cookies: CallMethodCookies = {};
         if (threadId) {
             //TODO multiple ids are delimited with a '-'. eg: 123-345-456
@@ -202,7 +254,7 @@ export class Thread {
      * @fulfill {*}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    static async open(vbApi: VBApi, threadId: number) {
+    static async openThread(vbApi: VBApi, threadId: number) {
         let cookies: CallMethodCookies = {};
         if (threadId) {
             //TODO multiple ids are delimited with a '-'. eg: 123-345-456
@@ -240,7 +292,7 @@ export class Thread {
      * @fulfill {*}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    static async delete(vbApi: VBApi, threadId: number) {
+    static async deleteThread(vbApi: VBApi, threadId: number) {
         let cookies: CallMethodCookies = {};
         if (threadId) {
             //TODO multiple ids are delimited with a '-'. eg: 123-345-456

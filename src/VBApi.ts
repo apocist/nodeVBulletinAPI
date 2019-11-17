@@ -28,8 +28,10 @@ export interface UserVars {
     userid: number,
     loggedIn: boolean
 }
+
 export interface CallMethodParameters {
     [key: string]: any,
+
     clientname?: string,
     clientversion?: string,
     platformname?: string,
@@ -358,7 +360,7 @@ export class VBApi {
      * @fulfill {UserVars}
      * @reject {string} - Error Reason. Expects:
      */
-    async login(username: string, password: string, options?: {username?: string, password?: string}): Promise<UserVars> {
+    async login(username: string, password: string, options?: { username?: string, password?: string }): Promise<UserVars> {
         options = options || {};
         options.username = username || options.username || '';
         options.password = md5(password || options.password || '');
@@ -376,7 +378,7 @@ export class VBApi {
      * @fulfill {UserVars}
      * @reject {string} - Error Reason. Expects:
      */
-    async loginMD5(username: string, password: string, options?: {username?: string, password?: string}): Promise<UserVars> {
+    async loginMD5(username: string, password: string, options?: { username?: string, password?: string }): Promise<UserVars> {
         let that = this;
         options = options || {};
         options.username = username || options.username || '';
@@ -470,5 +472,29 @@ export class VBApi {
 }
 
 export class FetchableObject {
+    protected readonly vbApi: VBApi;
+    protected rawData: any;
 
+    fetched: boolean = false;
+    fetchTime: Date;
+
+    constructor(vbApi: VBApi, rawData?: any) {
+        this.vbApi = vbApi;
+        if (rawData) {
+            this.rawData = rawData;
+            this.parseData();
+            this.cleanup();
+        }
+    }
+
+    protected parseData() {
+        if (this.rawData) {
+            this.fetched = true;
+            this.fetchTime = new Date();
+        }
+    }
+
+    protected cleanup() {
+        delete this.rawData;
+    }
 }

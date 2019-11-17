@@ -1,4 +1,4 @@
-import {VBApi, CallMethodParameters} from './VBApi';
+import {VBApi, FetchableObject, CallMethodParameters} from './VBApi';
 import {Member} from './Member';
 
 export interface MessageGetOptions extends CallMethodParameters {
@@ -49,9 +49,8 @@ export interface RawMessageData {
     }
 }
 
-export class Message {
-    private readonly vbApi: VBApi;
-    private rawData: RawMessageData;
+export class Message extends FetchableObject {
+    protected rawData: RawMessageData;
 
     fetched: boolean = false;
     unread: boolean = false;
@@ -71,15 +70,10 @@ export class Message {
     user: Member;
 
     constructor(vbApi: VBApi, rawData?: RawMessageData) {
-        this.vbApi = vbApi;
-        if (rawData) {
-            this.rawData = rawData;
-            this.parseData();
-        }
-        this.cleanup();
+        super(vbApi, rawData);
     };
 
-    private parseData() {
+    protected parseData() {
         if (this.rawData
             && this.rawData.hasOwnProperty('HTML')
             && this.rawData.HTML.hasOwnProperty('pm')
@@ -113,14 +107,8 @@ export class Message {
             member.joinDate = new Date(parseInt(post.joindate, 10) * 1000);
             member.online = !!parseInt(post.onlinestatus.onlinestatus, 10);
             this.user = member;
-
-            this.unread = false;
-            this.fetched = true;
         }
-    };
-
-    private cleanup() {
-        delete this.rawData;
+        super.parseData();
     };
 
     /**

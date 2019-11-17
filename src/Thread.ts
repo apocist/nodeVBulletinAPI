@@ -1,4 +1,4 @@
-import {VBApi, CallMethodParameters, CallMethodCookies} from './VBApi';
+import {VBApi, FetchableObject, CallMethodParameters, CallMethodCookies} from './VBApi';
 import {Post, RawPostData} from './Post';
 
 export interface ThreadCreateOptions extends CallMethodParameters {
@@ -23,12 +23,8 @@ export interface RawThreadData {
     postbits: RawPostData[]
 }
 
-export class Thread {
-    private readonly vbApi: VBApi;
-    private rawData: RawThreadData;
-
-    fetched: boolean = false;
-    fetchTime: Date;
+export class Thread extends FetchableObject {
+    protected rawData: RawThreadData;
 
     id: number;
     title: string;
@@ -36,14 +32,11 @@ export class Thread {
     forumTitle: string;
     posts: Post[] = [];
 
-    constructor(vbApi: VBApi, rawData: RawThreadData) {
-        this.vbApi = vbApi;
-        this.rawData = rawData;
-        this.parseData();
-        this.cleanup();
+    constructor(vbApi: VBApi, rawData?: RawThreadData) {
+        super(vbApi, rawData);
     }
 
-    private parseData() {
+    protected parseData() {
         if (this.rawData) {
             //TODO need to specify if its fully fetched
             const rawData = this.rawData;
@@ -72,14 +65,8 @@ export class Thread {
                     this.posts.push(new Post(this.vbApi, postData));
                 });
             }
-
-            this.fetched = true;
-            this.fetchTime = new Date();
         }
-    }
-
-    private cleanup() {
-        delete this.rawData;
+        super.parseData();
     }
 
     /**

@@ -1,5 +1,5 @@
 import * as _ from 'lodash'
-import {VBApi, CallMethodParameters} from './VBApi';
+import {VBApi, FetchableObject, CallMethodParameters} from './VBApi';
 import {Message} from './Message';
 
 export interface InboxEmptyOptions extends CallMethodParameters {
@@ -49,27 +49,19 @@ export interface RawInboxData {
     }
 }
 
-class Inbox {
-    private readonly vbApi: VBApi;
-    private rawData: RawInboxData;
-
-    fetched: boolean = false;
-    fetchTime: Date;
+class Inbox extends FetchableObject {
+    protected rawData: RawInboxData;
 
     folderId: number;
     messages: Message[] = [];
     totalMessages: number;
     messageQuota: number;
 
-    constructor(vbApi: VBApi, rawData: RawInboxData) {
-        this.vbApi = vbApi;
-        this.rawData = rawData;
-
-        this.parseData();
-        this.cleanup();
+    constructor(vbApi: VBApi, rawData?: RawInboxData) {
+        super(vbApi, rawData);
     };
 
-    private parseData() {
+    protected parseData() {
         // TODO Only handling single folder at this time
         const that = this;
         if (this.rawData) {
@@ -103,14 +95,8 @@ class Inbox {
                     });
                 }
             }
-
-            this.fetched = true;
-            this.fetchTime = new Date();
         }
-    };
-
-    private cleanup() {
-        delete this.rawData;
+        super.parseData();
     };
 
     /**

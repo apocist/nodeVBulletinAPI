@@ -1,4 +1,4 @@
-import {VBApi, CallMethodParameters} from './VBApi';
+import {VBApi, FetchableObject, CallMethodParameters} from './VBApi';
 
 export interface PostCreateOptions extends CallMethodParameters {
     threadid?: number,
@@ -34,9 +34,8 @@ export interface RawPostData {
     }
 }
 
-export class Post {
-    private readonly vbApi: VBApi;
-    private rawData: RawPostData;
+export class Post extends FetchableObject{
+    protected rawData: RawPostData;
 
     id: number;
     threadId: number;
@@ -51,14 +50,11 @@ export class Post {
     username: string;
     signature: string;
 
-    constructor(vbApi: VBApi, rawData: RawPostData) {
-        this.vbApi = vbApi;
-        this.rawData = rawData;
-        this.parseData();
-        this.cleanup();
+    constructor(vbApi: VBApi, rawData?: RawPostData) {
+        super(vbApi, rawData);
     };
 
-    private parseData() {
+    protected parseData() {
         if (this.rawData) {
             const rawData = this.rawData;
 
@@ -98,10 +94,7 @@ export class Post {
                 }
             }
         }
-    }
-
-    private cleanup() {
-        delete this.rawData;
+        super.parseData();
     }
 
     /**

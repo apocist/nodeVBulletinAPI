@@ -1,4 +1,4 @@
-import {VBApi, CallMethodParameters} from './VBApi';
+import {VBApi, FetchableObject, CallMethodParameters} from './VBApi';
 
 export interface MemberGetOptions extends CallMethodParameters {
     unsername?: string
@@ -28,11 +28,8 @@ export interface RawMemberData {
     }
 }
 
-export class Member {
-    private readonly vbApi: VBApi;
-    private rawData: RawMemberData;
-
-    fetched: boolean = false;
+export class Member extends FetchableObject {
+    protected rawData: RawMemberData;
 
     // Info available before full fetch
     id: number;
@@ -57,15 +54,10 @@ export class Member {
     hasIMDetails: boolean;
 
     constructor(vbApi: VBApi, rawData?: RawMemberData) {
-        this.vbApi = vbApi;
-        if (rawData) {
-            this.rawData = rawData;
-            this.parseData();
-        }
-        this.cleanup();
+        super(vbApi, rawData);
     };
 
-    private parseData() {
+    protected parseData() {
         let that = this;
         if (this.rawData) {
             const rawData = this.rawData;
@@ -148,12 +140,8 @@ export class Member {
                     that.lastActivityTime = new Date(that.lastActivityTimeUnix * 1000);
                 }
             }
-            that.fetched = true;
         }
-    };
-
-    private cleanup() {
-        delete this.rawData;
+        super.parseData();
     };
 
     /**

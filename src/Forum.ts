@@ -1,4 +1,4 @@
-import {VBApi, CallMethodParameters} from './VBApi';
+import {VBApi, FetchableObject, CallMethodParameters} from './VBApi';
 import {Thread, RawThreadData} from './Thread';
 
 export interface ForumGetOptions extends CallMethodParameters {
@@ -20,8 +20,8 @@ export interface RawForumData {
     threadbits: RawThreadData[]
 }
 
-class Forum {
-    private rawData: RawForumData;
+class Forum extends FetchableObject {
+    protected rawData: RawForumData;
 
     id: number;
     title: string;
@@ -30,13 +30,11 @@ class Forum {
     threads: Thread[] = [];
     subForums: Forum[] = [];
 
-    constructor(rawData) {
-        this.rawData = rawData;
-        this.parseData();
-        this.cleanup();
+    constructor(vbApi: VBApi, rawData?: RawForumData) {
+        super(vbApi, rawData);
     };
 
-    private parseData() {
+    protected parseData() {
         if (this.rawData) {
             //TODO need to specify if its fully fetched
             let rawData = this.rawData;
@@ -69,7 +67,7 @@ class Forum {
             if (rawData.hasOwnProperty('threadbits')) {
                 let threadBits = rawData.threadbits;
                 threadBits.forEach((thread) => {
-                    this.threads.push(new Thread(thread));
+                    this.threads.push(new Thread(this.vbApi, thread));
                 });
             }
 
@@ -82,14 +80,11 @@ class Forum {
             }
             if (forumBits) {
                 forumBits.forEach((subForum) => {
-                    this.subForums.push(new Forum(subForum));
+                    this.subForums.push(new Forum(this.vbApi, subForum));
                 });
             }
         }
-    };
-
-    private cleanup() {
-        delete this.rawData;
+        super.parseData();
     };
 
     /**
@@ -110,7 +105,7 @@ class Forum {
                 if (response) {
                     for (let forum in response) {
                         if (response.hasOwnProperty(forum)) {
-                            forums.push(new Forum(response[forum]));
+                            forums.push(new Forum(vbApi, response[forum]));
                         }
                     }
                 }
@@ -130,7 +125,7 @@ class Forum {
      * @fulfill {Forum}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    static async get(vbApi: VBApi, forumId: number, options?: ForumGetOptions): Promise<Forum> {
+    static async getForum(vbApi: VBApi, forumId: number, options?: ForumGetOptions): Promise<Forum> {
         options = options || {};
         options.forumid = forumId || options.forumid || 0; //required
 
@@ -145,9 +140,9 @@ class Forum {
                     response
                     && response.hasOwnProperty('response')
                 ) {
-                    forum = new Forum(response.response);
+                    forum = new Forum(vbApi, response.response);
                 }
-                if(forum == null) {
+                if (forum == null) {
                     reject();
                 }
                 resolve(forum);

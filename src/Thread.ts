@@ -24,14 +24,17 @@ export interface RawThreadData {
 }
 
 export class Thread {
+    private readonly vbApi: VBApi;
     private rawData: RawThreadData;
-    forumId: number;
-    forumTitle: string;
+
     id: number;
     title: string;
+    forumId: number;
+    forumTitle: string;
     posts: Post[] = [];
 
-    constructor(rawData: RawThreadData) {
+    constructor(vbApi: VBApi, rawData: RawThreadData) {
+        this.vbApi = vbApi;
         this.rawData = rawData;
         this.parseData();
         this.cleanup();
@@ -63,7 +66,7 @@ export class Thread {
             if (rawData.hasOwnProperty('postbits')) {
                 let postBits = rawData.postbits;
                 postBits.forEach((postData) => {
-                    this.posts.push(new Post(postData));
+                    this.posts.push(new Post(this.vbApi, postData));
                 });
             }
         }
@@ -92,27 +95,29 @@ export class Thread {
         options.message = message || options.message || ''; //required
         options.signature = options.signature === true ? '1' : '0'; // FIXME This didn't seem to work
 
-        return new Promise(async function (resolve, reject) {
-            try {
-                let response = await vbApi.callMethod({
-                    method: 'newthread_postthread',
-                    params: options
-                });
-                let possibleError = VBApi.parseErrorMessage(response);
-                //success is errormessgae 'redirect_postthanks'
-                //reports threadid and postid
-                if (
-                    possibleError === 'redirect_postthanks'
-                    && response.hasOwnProperty('show')
-                ) {
-                    resolve(response.show);
-                } else {
-                    reject(possibleError || response);
-                }
-            } catch (e) {
-                reject(e);
-            }
-        });
+        let response;
+        let possibleError;
+        try {
+            response = await vbApi.callMethod({
+                method: 'newthread_postthread',
+                params: options
+            });
+            possibleError = VBApi.parseErrorMessage(response);
+            //success is errormessgae 'redirect_postthanks'
+            //reports threadid and postid
+
+        } catch (e) {
+            throw(e);
+        }
+
+        if (
+            possibleError === 'redirect_postthanks'
+            && response.hasOwnProperty('show')
+        ) {
+            return response.show;
+        } else {
+            throw possibleError || response;
+        }
     }
 
     /**
@@ -128,29 +133,27 @@ export class Thread {
         options = options || {};
         options.threadid = threadId || options.threadid || 0; //required
 
-        return new Promise(async function (resolve, reject) {
-            let thread = null;
-            try {
-                let response = await vbApi.callMethod({
-                    method: 'showthread',
-                    params: options
-                });
-                // TODO parse errors
-                if (
-                    response
-                    && response.hasOwnProperty('response')
-                ) {
-                    thread = new Thread(response.response);
-                }
-
-                if (thread == null) {
-                    reject();
-                }
-                resolve(thread);
-            } catch (e) {
-                reject(e);
+        let thread = null;
+        try {
+            let response = await vbApi.callMethod({
+                method: 'showthread',
+                params: options
+            });
+            // TODO parse errors
+            if (
+                response
+                && response.hasOwnProperty('response')
+            ) {
+                thread = new Thread(vbApi, response.response);
             }
-        });
+        } catch (e) {
+            throw(e);
+        }
+
+        if (thread == null) {
+            throw('Not Found');
+        }
+        return thread;
     }
 
     /**
@@ -167,26 +170,28 @@ export class Thread {
             //TODO multiple ids are delimited with a '-'. eg: 123-345-456
             cookies.vbulletin_inlinethread = threadId;
         }
-        return new Promise(async function (resolve, reject) {
-            try {
-                let response = await vbApi.callMethod({
-                    method: 'inlinemod_close',
-                    cookies: cookies || {}
-                });
-                //let possibleError = that.constructor.parseErrorMessage(response);
-                //unknown responses
-                /*if (
-                    possibleError === 'redirect_postthanks'
-                    && response.hasOwnProperty('show')
-                ) {*/
-                resolve(response);
-                /*} else {
-                    reject(possibleError || response);
-                }*/
-            } catch (e) {
-                reject(e);
-            }
-        });
+
+        let response;
+        try {
+            response = await vbApi.callMethod({
+                method: 'inlinemod_close',
+                cookies: cookies || {}
+            });
+            //let possibleError = that.constructor.parseErrorMessage(response);
+            //unknown responses
+            /*if (
+                possibleError === 'redirect_postthanks'
+                && response.hasOwnProperty('show')
+            ) {*/
+
+            /*} else {
+                reject(possibleError || response);
+            }*/
+        } catch (e) {
+            throw(e);
+        }
+
+        return response;
     }
 
     /**
@@ -203,26 +208,28 @@ export class Thread {
             //TODO multiple ids are delimited with a '-'. eg: 123-345-456
             cookies.vbulletin_inlinethread = threadId;
         }
-        return new Promise(async function (resolve, reject) {
-            try {
-                let response = await vbApi.callMethod({
-                    method: 'inlinemod_open',
-                    cookies: cookies || {}
-                });
-                //let possibleError = that.constructor.parseErrorMessage(response);
-                //unknown responses
-                /*if (
-                    possibleError === 'redirect_postthanks'
-                    && response.hasOwnProperty('show')
-                ) {*/
-                resolve(response);
-                /*} else {
-                    reject(possibleError || response);
-                }*/
-            } catch (e) {
-                reject(e);
-            }
-        });
+
+        let response;
+        try {
+            response = await vbApi.callMethod({
+                method: 'inlinemod_open',
+                cookies: cookies || {}
+            });
+            //let possibleError = that.constructor.parseErrorMessage(response);
+            //unknown responses
+            /*if (
+                possibleError === 'redirect_postthanks'
+                && response.hasOwnProperty('show')
+            ) {*/
+
+            /*} else {
+                reject(possibleError || response);
+            }*/
+        } catch (e) {
+            throw(e);
+        }
+
+        return response;
     }
 
     /**
@@ -239,26 +246,28 @@ export class Thread {
             //TODO multiple ids are delimited with a '-'. eg: 123-345-456
             cookies.vbulletin_inlinethread = threadId;
         }
-        return new Promise(async function (resolve, reject) {
-            try {
-                let response = await vbApi.callMethod({
-                    method: 'inlinemod_dodeletethreads',
-                    cookies: cookies || {}
-                });
-                //let possibleError = that.constructor.parseErrorMessage(response);
-                //unknown responses
-                /*if (
-                    possibleError === 'redirect_postthanks'
-                    && response.hasOwnProperty('show')
-                ) {*/
-                resolve(response);
-                /*} else {
-                    reject(possibleError || response);
-                }*/
-            } catch (e) {
-                reject(e);
-            }
-        });
+
+        let response;
+        try {
+            response = await vbApi.callMethod({
+                method: 'inlinemod_dodeletethreads',
+                cookies: cookies || {}
+            });
+            //let possibleError = that.constructor.parseErrorMessage(response);
+            //unknown responses
+            /*if (
+                possibleError === 'redirect_postthanks'
+                && response.hasOwnProperty('show')
+            ) {*/
+
+            /*} else {
+                reject(possibleError || response);
+            }*/
+        } catch (e) {
+            throw(e);
+        }
+
+        return response;
     }
 
 }

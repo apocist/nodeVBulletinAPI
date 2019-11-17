@@ -457,14 +457,14 @@ export class VBApi {
     /* Post methods */
 
     createPost(threadId: number, message: string, options?: PostCreateOptions) {
-        return Post.create(this, threadId, message, options);
+        return Post.createPost(this, threadId, message, options);
     }
 
     editPost(postId: number, message: string, options?: PostEditOptions) {
-        return Post.edit(this, postId, message, options);
+        return Post.editPost(this, postId, message, options);
     }
 
     deletePost(postId: number, threadId: number, options?: PostDeleteOptions) {
-        return Post.delete(this, postId, threadId, options);
+        return Post.deletePost(this, postId, threadId, options);
     }
 }

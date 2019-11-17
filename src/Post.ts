@@ -35,6 +35,7 @@ export interface RawPostData {
 }
 
 export class Post {
+    private readonly vbApi: VBApi;
     private rawData: RawPostData;
 
     id: number;
@@ -50,7 +51,8 @@ export class Post {
     username: string;
     signature: string;
 
-    constructor(rawData: RawPostData) {
+    constructor(vbApi: VBApi, rawData: RawPostData) {
+        this.vbApi = vbApi;
         this.rawData = rawData;
         this.parseData();
         this.cleanup();
@@ -113,7 +115,7 @@ export class Post {
      * @fulfill {*}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    static async create(vbApi: VBApi, threadId: number, message: string, options?: PostCreateOptions) { // && add these options above
+    static async createPost(vbApi: VBApi, threadId: number, message: string, options?: PostCreateOptions) { // && add these options above
         options = options || {};
         options.threadid = threadId || options.threadid || 0; //required
         options.message = message || options.message || ''; //required
@@ -156,7 +158,7 @@ export class Post {
      * @fulfill {*}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    static async edit(vbApi: VBApi, postId: number, message: string, options?: PostEditOptions) {
+    static async editPost(vbApi: VBApi, postId: number, message: string, options?: PostEditOptions) {
         options = options || {};
         options.postid = postId || options.postid || 0; //required
         options.message = message || options.message || ''; //required
@@ -195,7 +197,7 @@ export class Post {
      * @fulfill {*}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    static async delete(vbApi: VBApi, postId: number, threadId: number, options?: PostDeleteOptions) {
+    static async deletePost(vbApi: VBApi, postId: number, threadId: number, options?: PostDeleteOptions) {
         options = options || {};
         options.postid = postId || options.postid || 0; //required
         options.threadid = threadId || options.threadid || 0; // TODO required????

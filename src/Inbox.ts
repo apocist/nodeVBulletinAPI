@@ -50,18 +50,19 @@ export interface RawInboxData {
 }
 
 class Inbox {
+    private readonly vbApi: VBApi;
     private rawData: RawInboxData;
 
+    fetched: boolean = false;
+    fetchTime: Date;
+
+    folderId: number;
     messages: Message[] = [];
     totalMessages: number;
     messageQuota: number;
 
-
-    /**
-     *
-     * @param {RawInboxData} rawData
-     */
-    constructor(rawData: RawInboxData) {
+    constructor(vbApi: VBApi, rawData: RawInboxData) {
+        this.vbApi = vbApi;
         this.rawData = rawData;
 
         this.parseData();
@@ -73,9 +74,11 @@ class Inbox {
         const that = this;
         if (this.rawData) {
             const rawData = this.rawData;
+            that.messages = [];
             if (rawData.hasOwnProperty('HTML')) {
-                that.totalMessages = parseInt(rawData.HTML.pmtotal);
-                that.messageQuota = parseInt(rawData.HTML.pmquota);
+                that.folderId = parseInt(rawData.HTML.folderid, 10);
+                that.totalMessages = parseInt(rawData.HTML.pmtotal, 10);
+                that.messageQuota = parseInt(rawData.HTML.pmquota, 10);
                 if (
                     rawData.HTML.hasOwnProperty('messagelist_periodgroups')
                     && rawData.HTML.messagelist_periodgroups.hasOwnProperty('messagelistbits')
@@ -86,20 +89,23 @@ class Inbox {
                         messageListBits = [messageListBits];
                     }
                     messageListBits.forEach((rawMessage) => {
-                        const message = new Message();
+                        const message = new Message(this.vbApi);
                         message.id = parseInt(rawMessage.pm.pmid, 10);
                         // message.folderId
                         message.title = rawMessage.pm.title;
-                        message.time = new Date(parseInt(rawMessage.pm.sendtime) * 1000);
+                        message.time = new Date(parseInt(rawMessage.pm.sendtime, 10) * 1000);
                         message.status = rawMessage.pm.statusicon;
                         message.userId = parseInt(rawMessage.userbit.userinfo.userid, 10);
                         message.username = rawMessage.userbit.userinfo.username;
-                        message.unread = !!parseInt(rawMessage.show.unread);
+                        message.unread = !!parseInt(rawMessage.show.unread, 10);
 
                         that.messages.push(message);
                     });
                 }
             }
+
+            this.fetched = true;
+            this.fetchTime = new Date();
         }
     };
 
@@ -108,37 +114,90 @@ class Inbox {
     };
 
     /**
+     * Reload this Inbox data
+     * Will remove any messages currently loaded
+     * @TODO only handle the first folder
+     * @fulfill {Inbox}
+     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     */
+    async get(): Promise<this> {
+        let inboxData: RawInboxData;
+        try {
+            inboxData = await Inbox.getRawInboxData(this.vbApi)
+        } catch (e) {
+            throw(e);
+        }
+
+        if (inboxData == null) {
+            throw ('Not Found');
+        }
+        this.rawData = inboxData;
+        this.parseData();
+        this.cleanup();
+        return this;
+    }
+
+    /**
+     * Attempts to submit a new Thread into a specified Forum. This will also be considered the first Post
+     * @TODO note additional options
+     * @fulfill {void}
+     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     */
+    async empty(date: Date = new Date()): Promise<void> {
+        return Inbox.emptyInbox(this.vbApi, date, this.folderId);
+    }
+
+    /**
+     * Get logged in user's Inbox and list of private Messages
+     * @param vbApi -VBApi
+     * @param options
+     * @fulfill {RawInboxData}
+     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     */
+    static async getRawInboxData(vbApi: VBApi, options?: CallMethodParameters): Promise<RawInboxData> {
+        options = options || {};
+
+        let inboxData: RawInboxData;
+        let response;
+        try {
+            response = await vbApi.callMethod({
+                method: 'private_messagelist',
+                params: options
+            });
+            if (
+                response
+                && response.hasOwnProperty('response')
+            ) {
+                inboxData = response.response;
+            }
+        } catch (e) {
+            throw(e);
+        }
+
+        return inboxData;
+    }
+
+    /**
      * Get logged in user's Inbox and list of private Messages
      * @param vbApi -VBApi
      * @param options
      * @fulfill {Inbox}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    static async get(vbApi: VBApi, options?: CallMethodParameters): Promise<Inbox> {
+    static async getInbox(vbApi: VBApi, options?: CallMethodParameters): Promise<Inbox> {
         options = options || {};
 
-        return new Promise(async function (resolve, reject) {
-            try {
-                let inbox = null;
-                let response = await vbApi.callMethod({
-                    method: 'private_messagelist',
-                    params: options
-                });
-                if (
-                    response
-                    && response.hasOwnProperty('response')
-                ) {
-                    inbox = new Inbox(response.response);
-                }
+        let inboxData: RawInboxData;
+        try {
+            inboxData = await Inbox.getRawInboxData(vbApi, options)
+        } catch (e) {
+            throw(e);
+        }
 
-                if (inbox == null) {
-                    reject();
-                }
-                resolve(inbox);
-            } catch (e) {
-                reject(e);
-            }
-        });
+        if (inboxData == null) {
+            throw ('Not Found');
+        }
+        return new Inbox(vbApi, inboxData);
     }
 
     /**
@@ -151,26 +210,27 @@ class Inbox {
      * @fulfill {void}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    static async empty(vbApi: VBApi, date: Date, folderId: number = 0, options?: InboxEmptyOptions): Promise<void> {
+    static async emptyInbox(vbApi: VBApi, date: Date = new Date(), folderId: number = 0, options?: InboxEmptyOptions): Promise<void> {
         options = options || {};
         options.dateline = '' + parseInt((date.getTime() / 1000).toFixed(0)) || options.dateline || ''; //required
         options.folderid = '' + (folderId || options.folderid || '0');
 
-        return new Promise(async function (resolve, reject) {
-            try {
-                let response = await vbApi.callMethod({
-                    method: 'private_confirmemptyfolder',
-                    params: options
-                });
-                let possibleError = VBApi.parseErrorMessage(response);
-                if (possibleError !== 'pm_messagesdeleted') {
-                    reject(possibleError || response);
-                }
+        let response;
+        let possibleError;
 
-                resolve();
-            } catch (e) {
-                reject(e);
-            }
-        });
+        try {
+            response = await vbApi.callMethod({
+                method: 'private_confirmemptyfolder',
+                params: options
+            });
+        } catch (e) {
+            throw(e);
+        }
+
+        possibleError = VBApi.parseErrorMessage(response);
+        if (possibleError !== 'pm_messagesdeleted') {
+            throw(possibleError || response);
+        }
+        return;
     }
 }

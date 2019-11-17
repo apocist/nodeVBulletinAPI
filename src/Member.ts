@@ -29,6 +29,7 @@ export interface RawMemberData {
 }
 
 export class Member {
+    private readonly vbApi: VBApi;
     private rawData: RawMemberData;
 
     fetched: boolean = false;
@@ -55,7 +56,8 @@ export class Member {
     canBeFriend: boolean;
     hasIMDetails: boolean;
 
-    constructor(rawData?: RawMemberData) {
+    constructor(vbApi: VBApi, rawData?: RawMemberData) {
+        this.vbApi = vbApi;
         if (rawData) {
             this.rawData = rawData;
             this.parseData();
@@ -155,38 +157,72 @@ export class Member {
     };
 
     /**
+     * Retrieve full data about this Member (or refresh it's data)
+     * Useful if the Member was first generated from existing data and not  retrieved originally
+     * @fulfill {this}
+     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     * @throws {'Not Found'} If Member cannot be retrieved
+     */
+    async get(): Promise<this> {
+        let memberData: RawMemberData;
+        try {
+
+            let response = await this.vbApi.callMethod({
+                method: 'member',
+                params: {
+                    username: this.username
+                }
+            });
+            if (
+                response
+                && response.hasOwnProperty('response')
+            ) {
+                memberData = response.response;
+            }
+        } catch (e) {
+            throw(e);
+        }
+
+        if (memberData == null) {
+            throw 'Not Found' // FIXME make errors
+        }
+        this.rawData = memberData;
+        this.parseData();
+        this.cleanup();
+        return this;
+    }
+
+    /**
      * Retrieve data about a specific user found by username
      * @param vbApi - VBApi
      * @param username - Username
      * @param options - Secondary Options
      * @fulfill {Member}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     * @throws {'Not Found'} If Member cannot be retrieved
      */
-    static async get(vbApi: VBApi, username: string, options?: MemberGetOptions): Promise<Member> {
+    static async getMember(vbApi: VBApi, username: string, options?: MemberGetOptions): Promise<Member> {
         options = options || {};
         options.username = username || options.username || ''; //required
 
-        return new Promise(async function (resolve, reject) {
-            let thread = null;
-            try {
-                let response = await vbApi.callMethod({
-                    method: 'member',
-                    params: options
-                });
-                if (
-                    response
-                    && response.hasOwnProperty('response')
-                ) {
-                    thread = new Member(response.response);
-                }
-
-                if (thread == null) {
-                    reject();
-                }
-                resolve(thread);
-            } catch (e) {
-                reject(e);
+        let member = null;
+        try {
+            let response = await vbApi.callMethod({
+                method: 'member',
+                params: options
+            });
+            if (
+                response
+                && response.hasOwnProperty('response')
+            ) {
+                member = new Member(response.response);
             }
-        });
+        } catch (e) {
+            throw(e);
+        }
+        if (member == null) {
+            throw 'Not Found' // FIXME make errors
+        }
+        return member
     }
 }

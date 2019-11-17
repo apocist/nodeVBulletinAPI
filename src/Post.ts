@@ -44,9 +44,11 @@ export class Post {
     message: string;
     messagePlain: string;
     messageBBCode: string;
-    signature: string;
+
+    // TODO connect to Member
     userId: number;
     username: string;
+    signature: string;
 
     constructor(rawData: RawPostData) {
         this.rawData = rawData;

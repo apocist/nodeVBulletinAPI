@@ -50,6 +50,7 @@ export interface RawMessageData {
 }
 
 export class Message {
+    private readonly vbApi: VBApi;
     private rawData: RawMessageData;
 
     fetched: boolean = false;
@@ -69,12 +70,8 @@ export class Message {
     username: string;
     user: Member;
 
-
-    /**
-     *
-     * @param {RawMessageData} rawData
-     */
-    constructor(rawData?: RawMessageData) {
+    constructor(vbApi: VBApi, rawData?: RawMessageData) {
+        this.vbApi = vbApi;
         if (rawData) {
             this.rawData = rawData;
             this.parseData();
@@ -106,7 +103,8 @@ export class Message {
             this.userId = parseInt(post.userid, 10);
             this.username = pm.fromusername;
 
-            const member = new Member();
+            // Sending Member
+            const member = new Member(this.vbApi);
             member.id = parseInt(post.userid, 10);
             member.username = post.username;
             member.avatarUrl = post.avatarurl;
@@ -126,39 +124,75 @@ export class Message {
     };
 
     /**
+     * Get the full details of this Message
+     * @fulfill {this}
+     * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     * @throws {'Not Found'} If Message cannot be retrieved
+     */
+
+    async get(): Promise<this> {
+        let messageData: RawMessageData;
+        try {
+            let response = await this.vbApi.callMethod({
+                method: 'private_showpm',
+                params: {
+                    pmid: this.id
+                }
+            });
+            if (
+                response
+                && response.hasOwnProperty('response')
+            ) {
+                messageData = response.response;
+            }
+
+
+        } catch (e) {
+            throw(e);
+        }
+
+        if (messageData == null) {
+            throw 'Not Found' // FIXME make errors
+        }
+        this.rawData = messageData;
+        this.parseData();
+        this.cleanup();
+        return this;
+    }
+
+    /**
      * Get details of a specific Message for the logged in user
      * @param vbApi - VBApi
      * @param id - MessageId
      * @param options
      * @fulfill {Message}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
+     * @throws {'Not Found'} If Message cannot be retrieved
      */
-    static async get(vbApi: VBApi, id: number, options?: MessageGetOptions): Promise<Message> {
+    static async getMessage(vbApi: VBApi, id: number, options?: MessageGetOptions): Promise<Message> {
         options = options || {};
         options.pmid = id || options.pmid || 0; //required
 
-        return new Promise(async function (resolve, reject) {
-            let message = null;
-            try {
-                let response = await vbApi.callMethod({
-                    method: 'private_showpm',
-                    params: options
-                });
-                if (
-                    response
-                    && response.hasOwnProperty('response')
-                ) {
-                    message = new Message(response.response);
-                }
-
-                if (message == null) {
-                    reject();
-                }
-                resolve(message);
-            } catch (e) {
-                reject(e);
+        let message = null;
+        try {
+            let response = await vbApi.callMethod({
+                method: 'private_showpm',
+                params: options
+            });
+            if (
+                response
+                && response.hasOwnProperty('response')
+            ) {
+                message = new Message(response.response);
             }
-        });
+        } catch (e) {
+            throw(e);
+        }
+
+        if (message == null) {
+            throw 'Not Found' // FIXME make errors
+        }
+        return message;
     }
 
     /**
@@ -180,22 +214,21 @@ export class Message {
         options.message = message || options.message || ''; //required
         options.signature = options.signature === true ? '1' : '0';
 
-        return new Promise(async function (resolve, reject) {
-            try {
-                let response = await vbApi.callMethod({
-                    method: 'private_insertpm',
-                    params: options
-                });
-                let possibleError = VBApi.parseErrorMessage(response);
-                if (possibleError !== 'pm_messagesent') {
-                    reject(possibleError || response);
-                }
+        let possibleError;
+        let response;
+        try {
+            response = await vbApi.callMethod({
+                method: 'private_insertpm',
+                params: options
+            });
+            possibleError = VBApi.parseErrorMessage(response);
+        } catch (e) {
+            throw(e);
+        }
 
-                resolve(); // TODO: provide a better response
-            } catch (e) {
-                reject(e);
-            }
-
-        });
+        if (possibleError !== 'pm_messagesent') {
+            throw(possibleError || response);
+        }
+        return; // TODO: provide a better response
     }
 }

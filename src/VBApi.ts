@@ -2,8 +2,8 @@ import axios, {AxiosRequestConfig} from 'axios';
 import * as md5 from 'js-md5';
 import * as _ from 'lodash';
 import qs from 'qs';
-import * as url from 'url';
-import * as uuid from 'uuid';
+import * as url from 'url'; // FIXME need replace with browser friendly
+import * as uuid from 'uuid'; // FIXME need replace with browser friendly
 
 import {Post, PostCreateOptions, PostDeleteOptions, PostEditOptions} from './Post'
 const fakeVersion = '2.0.0-beta.0';
@@ -289,6 +289,11 @@ export class VBApi {
                 };
 
                 // FIXME need axios to handle cookies. try https://codewithhugo.com/pass-cookies-axios-fetch-requests/
+                // https://medium.com/acmvit/handling-cookies-with-axios-872790241a9b
+                // or headers:{
+                //          Cookie: "cookie1=value; cookie2=value; cookie3=value;"
+                // },
+                // withCredentials: true
                 // Some command require adding a cookie, we'll do that here
                 /*if (options.cookies) {
                     const j = request.jar();

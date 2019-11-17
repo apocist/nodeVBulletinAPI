@@ -5,7 +5,15 @@
     ],
     "jsRules": {},
     "rules": {
-        "no-console": false
+        "no-console": false,
+        "quotemark": [true, "single"],
+        "interface-name": false,
+        "semicolon": false,
+        "sort-keys": false,
+        "object-literal-sort-keys": false,
+        "trailing-comma": false,
+        "member-ordering": false,
+        "no-empty": false
     },
     "rulesDirectory": []
 }

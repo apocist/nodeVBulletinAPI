@@ -4,6 +4,7 @@
     "moduleResolution": "node",
     "sourceMap": true,
     "removeComments": true,
+    "preserveConstEnums": true,
     "declaration": true
   },
   "lib": [],

@@ -1,26 +1,13 @@
-'use strict';
-/*const md5 = require('js-md5'),
-    request = require('request'),
-    url = require('url'),
-    uuidV1 = require('uuid/v1'),
-    _ = require('underscore'),
-    Forum = require('./Forum'),
-    Inbox = require('./Inbox'),
-    Member = require('./Member'),
-    Message = require('./Message'),
-    Post = require('./Post'),
-    Thread = require('./Thread'),
-    {version} = require('./package.json');
-*/
-
-import md5 from 'js-md5';
+import * as md5 from 'js-md5';
+import * as _ from 'lodash';
 import * as request from 'request';
-import * as uuid from 'uuid';
 import * as url from 'url';
-import * as _ from 'lodash'
+import * as uuid from 'uuid';
 
 import {Post, PostCreateOptions, PostDeleteOptions, PostEditOptions} from './Post'
+const fakeVersion = '2.0.0-beta.0';
 
+// import {Forum} from './Forum'
 
 export interface UserVars {
     dbsessionhash: string
@@ -40,7 +27,7 @@ export interface CallMethodParameters {
 }
 
 export interface CallMethodCookies {
-    [key: string]: string | number
+    [key: string]: string | number,
 }
 
 export interface CallMethodOptions {
@@ -78,33 +65,31 @@ export class VBApi {
         error: string | null
     } = {
         apiVersion: '',
-        apiAccessToken: '',
         sessionHash: '',
+        apiAccessToken: '',
         apiClientId: '',
         secret: '',
         error: null
     };
     private userSessionVars: UserVars;
-    private waitingForInitializationCallback: (initSuccess: boolean) => void = function () {
-    };
     private waitingForInitializationTimeout: NodeJS.Timeout;
-
+    // tslint:disable-next-line:no-empty
+    private waitingForInitializationCallback: (initSuccess: boolean) => void = () => {
+    };
 
     constructor(apiUrl: string, apiKey: string, platformName: string, platformVersion: string) {
         this.initialized = false;
         const urlParts = url.parse(apiUrl);
 
-        const fakeVersion = '0.0.0';
-
         this.connectionVars = {
             baseUrl: `${urlParts.protocol}//${urlParts.hostname}/`,
             apiUrl: apiUrl || '',
-            apiKey: apiKey,
+            apiKey,
             clientName: 'nodeVBulletinAPI',
             clientVersion: fakeVersion,
             platformName: platformName || '',
             platformVersion: platformVersion || '',
-            uniqueId: md5('nodeVBulletinAPI' + fakeVersion + platformName + platformVersion + uuid.v1()),
+            uniqueId: md5.hex('nodeVBulletinAPI' + fakeVersion + platformName + platformVersion + uuid.v1()),
         };
 
         this.userSessionVars = {
@@ -135,7 +120,7 @@ export class VBApi {
             let result: VBApi | null = null;
 
             try {
-                let response: {
+                const response: {
                     apiversion?: string,
                     apiaccesstoken?: string,
                     sessionhash?: string,
@@ -195,29 +180,31 @@ export class VBApi {
      * @fulfill {void}
      * @reject {string} - Error Reason
      */
-    async waitForInitialization(waitTime?: number) {
+    public async waitForInitialization(waitTime?: number) {
         const that = this;
         waitTime = waitTime || 5;
 
-        return new Promise(async function (resolve, reject) {
+        return new Promise(async (resolve, reject) => {
             if (that.initialized) {
                 resolve();
             } else if (that.clientSessionVars.error !== null) {
                 reject(that.clientSessionVars.error);
             } else {
                 that.waitingForInitializationTimeout = setTimeout(
-                    function () {
-                        that.waitingForInitializationCallback = function () {
+                    () => {
+                        that.waitingForInitializationCallback = () => {
                         }; // Set back to a blank function
                         if (that.initialized) {
                             resolve();
                         } else {
-                            reject('Connection could not be achieved due to timed out: ' + that.clientSessionVars.error);
+                            reject(
+                                'Connection could not be achieved due to timed out: ' + that.clientSessionVars.error
+                            );
                         }
                     },
                     waitTime * 1000 // x second timeout
                 );
-                that.waitingForInitializationCallback = function (initSuccess?: boolean) {
+                that.waitingForInitializationCallback = (initSuccess?: boolean) => {
                     if (that.waitingForInitializationTimeout) {
                         clearTimeout(that.waitingForInitializationTimeout);
                     }
@@ -241,7 +228,7 @@ export class VBApi {
      * @fulfill {{}}
      * @reject {string} - Error Reason
      */
-    async callMethod(options: CallMethodOptions): Promise<any> {
+    public async callMethod(options: CallMethodOptions): Promise<any> {
         const that = this;
         let sign = true;
         options = options || {
@@ -249,7 +236,7 @@ export class VBApi {
             params: {}
         };
         options.params = options.params || {};
-        return new Promise(async function (resolve, reject) {
+        return new Promise(async (resolve, reject) => {
             try {
                 if (!options.method) {
                     reject('callMethod(): requires a supplied method');
@@ -267,18 +254,18 @@ export class VBApi {
                 }
 
                 // Gather our sessions variables together
-                let reqParams: VbQuery = {
+                const reqParams: VbQuery = {
                     api_m: options.method,
-                    api_c: that.clientSessionVars.apiClientId, //clientId
-                    api_s: that.clientSessionVars.apiAccessToken, //apiAccessToken (may be empty)
-                    api_v: that.clientSessionVars.apiVersion //api version
+                    api_c: that.clientSessionVars.apiClientId, // clientId
+                    api_s: that.clientSessionVars.apiAccessToken, // apiAccessToken (may be empty)
+                    api_v: that.clientSessionVars.apiVersion // api version
                 };
                 _.extend(reqParams, options.params); // Combine the arrays
 
                 if (sign === true) {
                     // Generate a signature to validate that we are authenticated
                     if (that.initialized) {
-                        reqParams.api_sig = md5(
+                        reqParams.api_sig = md5.hex(
                             that.clientSessionVars.apiAccessToken +
                             that.clientSessionVars.apiClientId +
                             that.clientSessionVars.secret +
@@ -291,7 +278,7 @@ export class VBApi {
                 }
 
                 // Create a valid http Request
-                let reqOptions: request.Options = {
+                const reqOptions: request.Options = {
                     url: that.connectionVars.apiUrl,
                     formData: reqParams,
                     headers: {
@@ -301,24 +288,25 @@ export class VBApi {
 
                 // Some command require adding a cookie, we'll do that here
                 if (options.cookies) {
-                    let j = request.jar();
-                    for (let variable in options.cookies) {
+                    const j = request.jar();
+                    for (const variable in options.cookies) {
                         if (options.cookies.hasOwnProperty(variable)) {
-                            let cookieString = variable + '=' + options.cookies[variable];
-                            let cookie = request.cookie(cookieString);
+                            const cookieString = variable + '=' + options.cookies[variable];
+                            const cookie = request.cookie(cookieString);
                             j.setCookie(cookie, that.connectionVars.baseUrl);
                         }
                     }
-                    reqOptions.jar = j;// Adds cookies to the request
+                    reqOptions.jar = j; // Adds cookies to the request
                 }
 
                 request.post(
                     reqOptions,
-                    function (error, response, body) {
+                    // tslint:disable-next-line:only-arrow-functions
+                    function(error, response, body) {
                         if (!error && response.statusCode === 200) {
                             resolve(JSON.parse(body));
                         } else {
-                            //console.log('No response');
+                            // console.log('No response');
                             reject('callMethod(): no response.');
                         }
                     }
@@ -334,14 +322,14 @@ export class VBApi {
      * @param {object} response - Response object from callMethod()
      * @returns {string || null} status - Error message
      */
-    static parseErrorMessage(response: any): string | null {
+    public static parseErrorMessage(response: any): string | null {
         let value = '';
         if (
             response.hasOwnProperty('response')
             && response.response.hasOwnProperty('errormessage')
         ) {
             if (_.isArray(response.response.errormessage)) {
-                value = response.response.errormessage[0]
+                value = response.response.errormessage[0];
             } else {
                 value = response.response.errormessage;
             }
@@ -360,10 +348,12 @@ export class VBApi {
      * @fulfill {UserVars}
      * @reject {string} - Error Reason. Expects:
      */
-    async login(username: string, password: string, options?: { username?: string, password?: string }): Promise<UserVars> {
+    public async login(
+        username: string, password: string, options?: { username?: string, password?: string }
+    ): Promise<UserVars> {
         options = options || {};
         options.username = username || options.username || '';
-        options.password = md5(password || options.password || '');
+        options.password = md5.hex(password || options.password || '');
         return await this.loginMD5('', '', options);
     }
 
@@ -378,14 +368,16 @@ export class VBApi {
      * @fulfill {UserVars}
      * @reject {string} - Error Reason. Expects:
      */
-    async loginMD5(username: string, password: string, options?: { username?: string, password?: string }): Promise<UserVars> {
-        let that = this;
+    public async loginMD5(
+        username: string, password: string, options?: { username?: string, password?: string }
+    ): Promise<UserVars> {
+        const that = this;
         options = options || {};
         options.username = username || options.username || '';
         options.password = password || options.password || '';
-        return new Promise(async function (resolve, reject) {
+        return new Promise(async (resolve, reject) => {
             try {
-                let response = await that.callMethod(
+                const response = await that.callMethod(
                     {
                         method: 'login_login',
                         params: {
@@ -395,11 +387,12 @@ export class VBApi {
                     }
                 );
                 /**
-                 redirect_login - (NOT A ERROR) Login successful
-                 badlogin - Username or Password incorrect. Login failed.
-                 badlogin_strikes - Username or Password incorrect. Login failed. You have used {X} out of 5 login attempts. After all 5 have been used, you will be unable to login for 15 minutes.
+                 * redirect_login - (NOT A ERROR) Login successful
+                 * badlogin - Username or Password incorrect. Login failed.
+                 * badlogin_strikes - Username or Password incorrect. Login failed. You have used {X} out of 5 login
+                 * attempts. After all 5 have been used, you will be unable to login for 15 minutes.
                  */
-                let error = VBApi.parseErrorMessage(response);
+                const error = VBApi.parseErrorMessage(response);
                 if (response.session) {
                     that.userSessionVars = response.session;
                     if (error === 'redirect_login') {
@@ -425,12 +418,12 @@ export class VBApi {
      * @fulfill {boolean}
      * @reject {string} - Error Reason
      */
-    async logout(): Promise<boolean> {
-        let that = this;
-        return new Promise(async function (resolve, reject) {
+    public async logout(): Promise<boolean> {
+        const that = this;
+        return new Promise(async (resolve, reject) => {
             let error;
             try {
-                let response = await that.callMethod({
+                const response = await that.callMethod({
                     method: 'login_logout'
                 });
                 error = VBApi.parseErrorMessage(response);
@@ -451,50 +444,22 @@ export class VBApi {
             if (error) {
                 reject(error);
             } else {
-                resolve(true)
+                resolve(true);
             }
         });
     }
 
     /* Post methods */
 
-    createPost(threadId: number, message: string, options?: PostCreateOptions) {
+    public createPost(threadId: number, message: string, options?: PostCreateOptions) {
         return Post.createPost(this, threadId, message, options);
     }
 
-    editPost(postId: number, message: string, options?: PostEditOptions) {
+    public editPost(postId: number, message: string, options?: PostEditOptions) {
         return Post.editPost(this, postId, message, options);
     }
 
-    deletePost(postId: number, threadId: number, options?: PostDeleteOptions) {
+    public deletePost(postId: number, threadId: number, options?: PostDeleteOptions) {
         return Post.deletePost(this, postId, threadId, options);
-    }
-}
-
-export class FetchableObject {
-    protected readonly vbApi: VBApi;
-    protected rawData: any;
-
-    fetched: boolean = false;
-    fetchTime: Date;
-
-    constructor(vbApi: VBApi, rawData?: any) {
-        this.vbApi = vbApi;
-        if (rawData) {
-            this.rawData = rawData;
-            this.parseData();
-            this.cleanup();
-        }
-    }
-
-    protected parseData() {
-        if (this.rawData) {
-            this.fetched = true;
-            this.fetchTime = new Date();
-        }
-    }
-
-    protected cleanup() {
-        delete this.rawData;
     }
 }

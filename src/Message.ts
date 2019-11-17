@@ -1,5 +1,6 @@
-import {VBApi, FetchableObject, CallMethodParameters} from './VBApi';
+import {FetchableObject} from './FetchableObject';
 import {Member} from './Member';
+import {CallMethodParameters, VBApi} from './VBApi';
 
 export interface MessageGetOptions extends CallMethodParameters {
     pmid?: number
@@ -19,7 +20,7 @@ export interface RawMessageData {
         pm: {
             pmid: string,
             title: string,
-            recipients: string, //'UserHere ; ' possibly delimited by ;
+            recipients: string, // 'UserHere ; ' possibly delimited by ;
             savecopy: string, // 0 (noting as string just to be able to parseInt)
             folderid: string, // '0'
             fromusername: string
@@ -29,17 +30,17 @@ export interface RawMessageData {
             post: {
                 statusicon: 'new' | 'old' | 'replied',
                 posttime: string,
-                checkbox_value: string, //(noting as string just to be able to parseInt)
-                onlinestatusphrase: string, //'x_is_online_now'
-                userid: string, //(noting as string just to be able to parseInt)
+                checkbox_value: string, // (noting as string just to be able to parseInt)
+                onlinestatusphrase: string, // 'x_is_online_now'
+                userid: string, // (noting as string just to be able to parseInt)
                 username: string,
-                avatarurl: string,  //'customavatars/avatar0000_14.gif'
+                avatarurl: string,  // 'customavatars/avatar0000_14.gif'
                 onlinestatus: {
                     onlinestatus: string // 0 (noting as string just to be able to parseInt)
                 },
                 usertitle: string,
                 joindate: string,
-                title: string, //Message title
+                title: string, // Message title
                 message: string,
                 message_plain: string,
                 message_bbcode: string,
@@ -52,22 +53,22 @@ export interface RawMessageData {
 export class Message extends FetchableObject {
     protected rawData: RawMessageData;
 
-    fetched: boolean = false;
-    unread: boolean = false;
+    public fetched: boolean = false;
+    public unread: boolean = false;
 
-    id: number;
-    folderId: number;
-    recipients: string;
-    title: string;
-    message: string;
-    messagePlain: string;
-    messageBBCode: string;
-    status: string;
-    time: Date;
+    public id: number;
+    public folderId: number;
+    public recipients: string;
+    public title: string;
+    public message: string;
+    public messagePlain: string;
+    public messageBBCode: string;
+    public status: string;
+    public time: Date;
 
-    userId: number;
-    username: string;
-    user: Member;
+    public userId: number;
+    public username: string;
+    public user: Member;
 
     constructor(vbApi: VBApi, rawData?: RawMessageData) {
         super(vbApi, rawData);
@@ -93,7 +94,6 @@ export class Message extends FetchableObject {
             this.status = post.statusicon;
             this.time = new Date(parseInt(post.posttime, 10) * 1000);
 
-
             this.userId = parseInt(post.userid, 10);
             this.username = pm.fromusername;
 
@@ -118,10 +118,10 @@ export class Message extends FetchableObject {
      * @throws {'Not Found'} If Message cannot be retrieved
      */
 
-    async get(): Promise<this> {
+    public async get(): Promise<this> {
         let messageData: RawMessageData;
         try {
-            let response = await this.vbApi.callMethod({
+            const response = await this.vbApi.callMethod({
                 method: 'private_showpm',
                 params: {
                     pmid: this.id
@@ -134,13 +134,12 @@ export class Message extends FetchableObject {
                 messageData = response.response;
             }
 
-
         } catch (e) {
             throw(e);
         }
 
         if (messageData == null) {
-            throw 'Not Found' // FIXME make errors
+            throw new Error('Not Found') // FIXME make errors
         }
         this.rawData = messageData;
         this.parseData();
@@ -157,13 +156,13 @@ export class Message extends FetchableObject {
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      * @throws {'Not Found'} If Message cannot be retrieved
      */
-    static async getMessage(vbApi: VBApi, id: number, options?: MessageGetOptions): Promise<Message> {
+    public static async getMessage(vbApi: VBApi, id: number, options?: MessageGetOptions): Promise<Message> {
         options = options || {};
-        options.pmid = id || options.pmid || 0; //required
+        options.pmid = id || options.pmid || 0; // required
 
         let message = null;
         try {
-            let response = await vbApi.callMethod({
+            const response = await vbApi.callMethod({
                 method: 'private_showpm',
                 params: options
             });
@@ -178,7 +177,7 @@ export class Message extends FetchableObject {
         }
 
         if (message == null) {
-            throw 'Not Found' // FIXME make errors
+            throw new Error('Not Found') // FIXME make errors
         }
         return message;
     }
@@ -195,11 +194,13 @@ export class Message extends FetchableObject {
      * @fulfill {void}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    static async create(vbApi: VBApi, username: string, title: string, message: string, options?: MessageCreateOptions) {
+    public static async create(
+        vbApi: VBApi, username: string, title: string, message: string, options?: MessageCreateOptions
+    ) {
         options = options || {};
-        options.recipients = username || options.recipients || ''; //required
-        options.title = title || options.title || ''; //required
-        options.message = message || options.message || ''; //required
+        options.recipients = username || options.recipients || ''; // required
+        options.title = title || options.title || ''; // required
+        options.message = message || options.message || ''; // required
         options.signature = options.signature === true ? '1' : '0';
 
         let possibleError;

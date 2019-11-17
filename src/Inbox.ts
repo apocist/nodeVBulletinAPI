@@ -1,6 +1,7 @@
 import * as _ from 'lodash'
-import {VBApi, FetchableObject, CallMethodParameters} from './VBApi';
+import {FetchableObject} from './FetchableObject';
 import {Message} from './Message';
+import {CallMethodParameters, VBApi} from './VBApi';
 
 export interface InboxEmptyOptions extends CallMethodParameters {
     dateline?: string,
@@ -36,8 +37,8 @@ export interface RawInboxData {
         perpage: string, // 50
         pmquota: string, // 2000
         pmtotal: string, 2
-        receipts: unknown, //object
-        sortfilter: unknown, //object
+        receipts: unknown, // object
+        sortfilter: unknown, // object
         totalmessages: string, // 2
         startmessage: string, // 1
         endmessage: string, // 2
@@ -52,10 +53,10 @@ export interface RawInboxData {
 class Inbox extends FetchableObject {
     protected rawData: RawInboxData;
 
-    folderId: number;
-    messages: Message[] = [];
-    totalMessages: number;
-    messageQuota: number;
+    public folderId: number;
+    public messages: Message[] = [];
+    public totalMessages: number;
+    public messageQuota: number;
 
     constructor(vbApi: VBApi, rawData?: RawInboxData) {
         super(vbApi, rawData);
@@ -106,7 +107,7 @@ class Inbox extends FetchableObject {
      * @fulfill {Inbox}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    async get(): Promise<this> {
+    public async get(): Promise<this> {
         let inboxData: RawInboxData;
         try {
             inboxData = await Inbox.getRawInboxData(this.vbApi)
@@ -115,7 +116,7 @@ class Inbox extends FetchableObject {
         }
 
         if (inboxData == null) {
-            throw ('Not Found');
+            throw new Error('Not Found');
         }
         this.rawData = inboxData;
         this.parseData();
@@ -129,7 +130,7 @@ class Inbox extends FetchableObject {
      * @fulfill {void}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    async empty(date: Date = new Date()): Promise<void> {
+    public async empty(date: Date = new Date()): Promise<void> {
         return Inbox.emptyInbox(this.vbApi, date, this.folderId);
     }
 
@@ -140,7 +141,7 @@ class Inbox extends FetchableObject {
      * @fulfill {RawInboxData}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    static async getRawInboxData(vbApi: VBApi, options?: CallMethodParameters): Promise<RawInboxData> {
+    public static async getRawInboxData(vbApi: VBApi, options?: CallMethodParameters): Promise<RawInboxData> {
         options = options || {};
 
         let inboxData: RawInboxData;
@@ -170,7 +171,7 @@ class Inbox extends FetchableObject {
      * @fulfill {Inbox}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    static async getInbox(vbApi: VBApi, options?: CallMethodParameters): Promise<Inbox> {
+    public static async getInbox(vbApi: VBApi, options?: CallMethodParameters): Promise<Inbox> {
         options = options || {};
 
         let inboxData: RawInboxData;
@@ -181,7 +182,7 @@ class Inbox extends FetchableObject {
         }
 
         if (inboxData == null) {
-            throw ('Not Found');
+            throw new Error('Not Found');
         }
         return new Inbox(vbApi, inboxData);
     }
@@ -196,9 +197,11 @@ class Inbox extends FetchableObject {
      * @fulfill {void}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    static async emptyInbox(vbApi: VBApi, date: Date = new Date(), folderId: number = 0, options?: InboxEmptyOptions): Promise<void> {
+    public static async emptyInbox(
+        vbApi: VBApi, date: Date = new Date(), folderId: number = 0, options?: InboxEmptyOptions
+    ): Promise<void> {
         options = options || {};
-        options.dateline = '' + parseInt((date.getTime() / 1000).toFixed(0)) || options.dateline || ''; //required
+        options.dateline = '' + parseInt((date.getTime() / 1000).toFixed(0), 10) || options.dateline || ''; // required
         options.folderid = '' + (folderId || options.folderid || '0');
 
         let response;

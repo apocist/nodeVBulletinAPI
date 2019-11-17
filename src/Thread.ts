@@ -1,5 +1,6 @@
-import {VBApi, FetchableObject, CallMethodParameters, CallMethodCookies} from './VBApi';
+import {FetchableObject} from './FetchableObject';
 import {Post, RawPostData} from './Post';
+import {CallMethodCookies, CallMethodParameters, VBApi} from './VBApi';
 
 export interface ThreadCreateOptions extends CallMethodParameters {
     signature?: boolean | '0' | '1',
@@ -26,11 +27,11 @@ export interface RawThreadData {
 export class Thread extends FetchableObject {
     protected rawData: RawThreadData;
 
-    id: number;
-    title: string;
-    forumId: number;
-    forumTitle: string;
-    posts: Post[] = [];
+    public id: number;
+    public title: string;
+    public forumId: number;
+    public forumTitle: string;
+    public posts: Post[] = [];
 
     constructor(vbApi: VBApi, rawData?: RawThreadData) {
         super(vbApi, rawData);
@@ -38,11 +39,11 @@ export class Thread extends FetchableObject {
 
     protected parseData() {
         if (this.rawData) {
-            //TODO need to specify if its fully fetched
+            // TODO need to specify if its fully fetched
             const rawData = this.rawData;
 
             if (rawData.hasOwnProperty('thread')) {
-                let threadData = rawData.thread;
+                const threadData = rawData.thread;
                 if (threadData.hasOwnProperty('forumid')) {
                     this.forumId = parseInt(threadData.forumid, 10);
                 }
@@ -60,7 +61,7 @@ export class Thread extends FetchableObject {
             }
 
             if (rawData.hasOwnProperty('postbits')) {
-                let postBits = rawData.postbits;
+                const postBits = rawData.postbits;
                 postBits.forEach((postData) => {
                     this.posts.push(new Post(this.vbApi, postData));
                 });
@@ -78,7 +79,7 @@ export class Thread extends FetchableObject {
      * @fulfill {this}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    async get(vbApi: VBApi, threadId: number, options?: ThreadGetOptions): Promise<this> {
+    public async get(vbApi: VBApi, threadId: number, options?: ThreadGetOptions): Promise<this> {
         let threadData = null;
         try {
             threadData = await Thread.getRawThreadData(vbApi, threadId, options);
@@ -87,7 +88,7 @@ export class Thread extends FetchableObject {
         }
 
         if (threadData == null) {
-            throw('Not Found');
+            throw new Error('Not Found');
         }
         this.rawData = threadData;
         this.parseData();
@@ -107,11 +108,13 @@ export class Thread extends FetchableObject {
      * @fulfill {*}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    static async createThread(vbApi: VBApi, forumId: number, subject: string, message: string, options?: ThreadCreateOptions) {
+    public static async createThread(
+        vbApi: VBApi, forumId: number, subject: string, message: string, options?: ThreadCreateOptions
+    ) {
         options = options || {};
-        options.forumid = forumId || options.forumid || 0; //required
-        options.subject = subject || options.subject || ''; //required
-        options.message = message || options.message || ''; //required
+        options.forumid = forumId || options.forumid || 0; // required
+        options.subject = subject || options.subject || ''; // required
+        options.message = message || options.message || ''; // required
         options.signature = options.signature === true ? '1' : '0'; // FIXME This didn't seem to work
 
         let response;
@@ -122,8 +125,8 @@ export class Thread extends FetchableObject {
                 params: options
             });
             possibleError = VBApi.parseErrorMessage(response);
-            //success is errormessgae 'redirect_postthanks'
-            //reports threadid and postid
+            // success is errormessgae 'redirect_postthanks'
+            // reports threadid and postid
 
         } catch (e) {
             throw(e);
@@ -148,13 +151,15 @@ export class Thread extends FetchableObject {
      * @fulfill {RawThreadData}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    static async getRawThreadData(vbApi: VBApi, threadId: number, options?: ThreadGetOptions): Promise<RawThreadData> {
+    public static async getRawThreadData(
+        vbApi: VBApi, threadId: number, options?: ThreadGetOptions
+    ): Promise<RawThreadData> {
         options = options || {};
-        options.threadid = threadId || options.threadid || 0; //required
+        options.threadid = threadId || options.threadid || 0; // required
 
         let threadData = null;
         try {
-            let response = await vbApi.callMethod({
+            const response = await vbApi.callMethod({
                 method: 'showthread',
                 params: options
             });
@@ -181,7 +186,7 @@ export class Thread extends FetchableObject {
      * @fulfill {Thread}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    static async getThread(vbApi: VBApi, threadId: number, options?: ThreadGetOptions): Promise<Thread> {
+    public static async getThread(vbApi: VBApi, threadId: number, options?: ThreadGetOptions): Promise<Thread> {
         let threadData = null;
         try {
             threadData = await Thread.getRawThreadData(vbApi, threadId, options);
@@ -190,7 +195,7 @@ export class Thread extends FetchableObject {
         }
 
         if (threadData == null) {
-            throw('Not Found');
+            throw new Error('Not Found');
         }
         return new Thread(vbApi, threadData);
     }
@@ -203,10 +208,10 @@ export class Thread extends FetchableObject {
      * @fulfill {*}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    static async closeThread(vbApi: VBApi, threadId: number) {
-        let cookies: CallMethodCookies = {};
+    public static async closeThread(vbApi: VBApi, threadId: number) {
+        const cookies: CallMethodCookies = {};
         if (threadId) {
-            //TODO multiple ids are delimited with a '-'. eg: 123-345-456
+            // TODO multiple ids are delimited with a '-'. eg: 123-345-456
             cookies.vbulletin_inlinethread = threadId;
         }
 
@@ -216,8 +221,8 @@ export class Thread extends FetchableObject {
                 method: 'inlinemod_close',
                 cookies: cookies || {}
             });
-            //let possibleError = that.constructor.parseErrorMessage(response);
-            //unknown responses
+            // let possibleError = that.constructor.parseErrorMessage(response);
+            // unknown responses
             /*if (
                 possibleError === 'redirect_postthanks'
                 && response.hasOwnProperty('show')
@@ -227,7 +232,7 @@ export class Thread extends FetchableObject {
                 reject(possibleError || response);
             }*/
         } catch (e) {
-            throw(e);
+            throw e;
         }
 
         return response;
@@ -241,10 +246,10 @@ export class Thread extends FetchableObject {
      * @fulfill {*}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    static async openThread(vbApi: VBApi, threadId: number) {
-        let cookies: CallMethodCookies = {};
+    public static async openThread(vbApi: VBApi, threadId: number) {
+        const cookies: CallMethodCookies = {};
         if (threadId) {
-            //TODO multiple ids are delimited with a '-'. eg: 123-345-456
+            // TODO multiple ids are delimited with a '-'. eg: 123-345-456
             cookies.vbulletin_inlinethread = threadId;
         }
 
@@ -254,8 +259,8 @@ export class Thread extends FetchableObject {
                 method: 'inlinemod_open',
                 cookies: cookies || {}
             });
-            //let possibleError = that.constructor.parseErrorMessage(response);
-            //unknown responses
+            // let possibleError = that.constructor.parseErrorMessage(response);
+            // unknown responses
             /*if (
                 possibleError === 'redirect_postthanks'
                 && response.hasOwnProperty('show')
@@ -265,7 +270,7 @@ export class Thread extends FetchableObject {
                 reject(possibleError || response);
             }*/
         } catch (e) {
-            throw(e);
+            throw e;
         }
 
         return response;
@@ -279,10 +284,10 @@ export class Thread extends FetchableObject {
      * @fulfill {*}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    static async deleteThread(vbApi: VBApi, threadId: number) {
-        let cookies: CallMethodCookies = {};
+    public static async deleteThread(vbApi: VBApi, threadId: number) {
+        const cookies: CallMethodCookies = {};
         if (threadId) {
-            //TODO multiple ids are delimited with a '-'. eg: 123-345-456
+            // TODO multiple ids are delimited with a '-'. eg: 123-345-456
             cookies.vbulletin_inlinethread = threadId;
         }
 
@@ -292,8 +297,8 @@ export class Thread extends FetchableObject {
                 method: 'inlinemod_dodeletethreads',
                 cookies: cookies || {}
             });
-            //let possibleError = that.constructor.parseErrorMessage(response);
-            //unknown responses
+            // let possibleError = that.constructor.parseErrorMessage(response);
+            // unknown responses
             /*if (
                 possibleError === 'redirect_postthanks'
                 && response.hasOwnProperty('show')
@@ -303,7 +308,7 @@ export class Thread extends FetchableObject {
                 reject(possibleError || response);
             }*/
         } catch (e) {
-            throw(e);
+            throw e;
         }
 
         return response;

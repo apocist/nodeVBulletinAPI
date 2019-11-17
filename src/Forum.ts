@@ -1,5 +1,6 @@
-import {VBApi, FetchableObject, CallMethodParameters} from './VBApi';
-import {Thread, RawThreadData} from './Thread';
+import {FetchableObject} from './FetchableObject';
+import {RawThreadData, Thread} from './Thread';
+import {CallMethodParameters, VBApi} from './VBApi';
 
 export interface ForumGetOptions extends CallMethodParameters {
     forumid?: number
@@ -20,15 +21,15 @@ export interface RawForumData {
     threadbits: RawThreadData[]
 }
 
-class Forum extends FetchableObject {
+export class Forum extends FetchableObject {
     protected rawData: RawForumData;
 
-    id: number;
-    title: string;
-    description: string;
-    parentId: number;
-    threads: Thread[] = [];
-    subForums: Forum[] = [];
+    public id: number;
+    public title: string;
+    public description: string;
+    public parentId: number;
+    public threads: Thread[] = [];
+    public subForums: Forum[] = [];
 
     constructor(vbApi: VBApi, rawData?: RawForumData) {
         super(vbApi, rawData);
@@ -36,8 +37,8 @@ class Forum extends FetchableObject {
 
     protected parseData() {
         if (this.rawData) {
-            //TODO need to specify if its fully fetched
-            let rawData = this.rawData;
+            // TODO need to specify if its fully fetched
+            const rawData = this.rawData;
             if (rawData.hasOwnProperty('forumid')) {
                 this.id = parseInt(rawData.forumid, 10);
             }
@@ -51,7 +52,7 @@ class Forum extends FetchableObject {
                 this.parentId = parseInt(rawData.parentid, 10);
             }
             if (rawData.hasOwnProperty('foruminfo')) {
-                let forumInfo = rawData.foruminfo;
+                const forumInfo = rawData.foruminfo;
                 if (forumInfo.hasOwnProperty('forumid')) {
                     this.id = parseInt(forumInfo.forumid, 10);
                 }
@@ -65,13 +66,14 @@ class Forum extends FetchableObject {
 
             // Set Threads
             if (rawData.hasOwnProperty('threadbits')) {
-                let threadBits = rawData.threadbits;
+                const threadBits = rawData.threadbits;
                 threadBits.forEach((thread) => {
                     this.threads.push(new Thread(this.vbApi, thread));
                 });
             }
 
             // Set Sub Forums
+            this.subForums = [];
             let forumBits: RawForumData[];
             if (rawData.hasOwnProperty('forumbits')) {
                 forumBits = rawData.forumbits;
@@ -93,17 +95,17 @@ class Forum extends FetchableObject {
      * @fulfill {Forum[]}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    static async getHome(vbApi: VBApi): Promise<Forum[]> {
-        return new Promise(async function (resolve, reject) {
+    public static async getHome(vbApi: VBApi): Promise<Forum[]> {
+        return new Promise(async (resolve, reject) => {
             try {
-                let forums: Forum[] = [];
-                let response = await vbApi.callMethod(
+                const forums: Forum[] = [];
+                const response = await vbApi.callMethod(
                     {
                         method: 'api_forumlist'
                     });
 
                 if (response) {
-                    for (let forum in response) {
+                    for (const forum in response) {
                         if (response.hasOwnProperty(forum)) {
                             forums.push(new Forum(vbApi, response[forum]));
                         }
@@ -125,14 +127,14 @@ class Forum extends FetchableObject {
      * @fulfill {Forum}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    static async getForum(vbApi: VBApi, forumId: number, options?: ForumGetOptions): Promise<Forum> {
+    public static async getForum(vbApi: VBApi, forumId: number, options?: ForumGetOptions): Promise<Forum> {
         options = options || {};
-        options.forumid = forumId || options.forumid || 0; //required
+        options.forumid = forumId || options.forumid || 0; // required
 
-        return new Promise(async function (resolve, reject) {
+        return new Promise(async (resolve, reject) => {
             try {
                 let forum = null;
-                let response = await vbApi.callMethod({
+                const response = await vbApi.callMethod({
                     method: 'forumdisplay',
                     params: options
                 });

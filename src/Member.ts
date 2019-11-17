@@ -1,7 +1,8 @@
-import {VBApi, FetchableObject, CallMethodParameters} from './VBApi';
+import {FetchableObject} from './FetchableObject';
+import {CallMethodParameters, VBApi} from './VBApi';
 
 export interface MemberGetOptions extends CallMethodParameters {
-    unsername?: string
+    username?: string
 }
 
 export interface RawMemberData {
@@ -32,40 +33,40 @@ export class Member extends FetchableObject {
     protected rawData: RawMemberData;
 
     // Info available before full fetch
-    id: number;
-    username: string;
-    avatarUrl: string;
-    title: string;
-    signature: string;
-    joinDate: Date;
-    online: boolean;
+    public id: number;
+    public username: string;
+    public avatarUrl: string;
+    public title: string;
+    public signature: string;
+    public joinDate: Date;
+    public online: boolean;
 
-    profileUrl: string;
-    profilePicUrl: string;
-    joinDateUnix: number;
-    lastActivityTime: Date;
-    lastActivityTimeUnix: number;
-    posts: number;
-    birthday: string;
-    homepage: string;
-    displayEmail: string;
-    noteCount: number;
-    canBeFriend: boolean;
-    hasIMDetails: boolean;
+    public profileUrl: string;
+    public profilePicUrl: string;
+    public joinDateUnix: number;
+    public lastActivityTime: Date;
+    public lastActivityTimeUnix: number;
+    public posts: number;
+    public birthday: string;
+    public homepage: string;
+    public displayEmail: string;
+    public noteCount: number;
+    public canBeFriend: boolean;
+    public hasIMDetails: boolean;
 
     constructor(vbApi: VBApi, rawData?: RawMemberData) {
         super(vbApi, rawData);
     };
 
     protected parseData() {
-        let that = this;
+        const that = this;
         if (this.rawData) {
             const rawData = this.rawData;
 
             // TODO parse groups, visitor_messaging, stats, albums, aboutme, and friends
 
             if (rawData.hasOwnProperty('prepared')) {
-                let memberData = rawData.prepared;
+                const memberData = rawData.prepared;
 
                 const numberItems = {
                     id: 'userid',
@@ -93,19 +94,19 @@ export class Member extends FetchableObject {
                     canBeFriend: 'canbefriend',
                 };
 
-                Object.keys(numberItems).forEach(function (key) {
+                Object.keys(numberItems).forEach((key) => {
                     if (memberData.hasOwnProperty(numberItems[key])) {
                         that[key] = parseInt(memberData[numberItems[key]], 10);
                     }
                 });
 
-                Object.keys(stringItems).forEach(function (key) {
+                Object.keys(stringItems).forEach((key) => {
                     if (memberData.hasOwnProperty(stringItems[key])) {
                         that[key] = memberData[stringItems[key]];
                     }
                 });
 
-                Object.keys(booleanItems).forEach(function (key) {
+                Object.keys(booleanItems).forEach((key) => {
                     if (memberData.hasOwnProperty(booleanItems[key])) {
                         let bool = false;
                         if (
@@ -151,11 +152,11 @@ export class Member extends FetchableObject {
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      * @throws {'Not Found'} If Member cannot be retrieved
      */
-    async get(): Promise<this> {
+    public async get(): Promise<this> {
         let memberData: RawMemberData;
         try {
 
-            let response = await this.vbApi.callMethod({
+            const response = await this.vbApi.callMethod({
                 method: 'member',
                 params: {
                     username: this.username
@@ -172,7 +173,7 @@ export class Member extends FetchableObject {
         }
 
         if (memberData == null) {
-            throw 'Not Found' // FIXME make errors
+            throw new Error('Not Found') // FIXME make errors
         }
         this.rawData = memberData;
         this.parseData();
@@ -189,13 +190,13 @@ export class Member extends FetchableObject {
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      * @throws {'Not Found'} If Member cannot be retrieved
      */
-    static async getMember(vbApi: VBApi, username: string, options?: MemberGetOptions): Promise<Member> {
+    public static async getMember(vbApi: VBApi, username: string, options?: MemberGetOptions): Promise<Member> {
         options = options || {};
-        options.username = username || options.username || ''; //required
+        options.username = username || options.username || ''; // required
 
         let member = null;
         try {
-            let response = await vbApi.callMethod({
+            const response = await vbApi.callMethod({
                 method: 'member',
                 params: options
             });
@@ -209,7 +210,7 @@ export class Member extends FetchableObject {
             throw(e);
         }
         if (member == null) {
-            throw 'Not Found' // FIXME make errors
+            throw new Error('Not Found') // FIXME make errors
         }
         return member
     }

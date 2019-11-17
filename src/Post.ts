@@ -1,4 +1,5 @@
-import {VBApi, FetchableObject, CallMethodParameters} from './VBApi';
+import {FetchableObject} from './FetchableObject';
+import {CallMethodParameters, VBApi} from './VBApi';
 
 export interface PostCreateOptions extends CallMethodParameters {
     threadid?: number,
@@ -34,21 +35,21 @@ export interface RawPostData {
     }
 }
 
-export class Post extends FetchableObject{
+export class Post extends FetchableObject {
     protected rawData: RawPostData;
 
-    id: number;
-    threadId: number;
-    postTime: number;
-    title: string;
-    message: string;
-    messagePlain: string;
-    messageBBCode: string;
+    public id: number;
+    public threadId: number;
+    public postTime: number;
+    public title: string;
+    public message: string;
+    public messagePlain: string;
+    public messageBBCode: string;
 
     // TODO connect to Member
-    userId: number;
-    username: string;
-    signature: string;
+    public userId: number;
+    public username: string;
+    public signature: string;
 
     constructor(vbApi: VBApi, rawData?: RawPostData) {
         super(vbApi, rawData);
@@ -59,7 +60,7 @@ export class Post extends FetchableObject{
             const rawData = this.rawData;
 
             if (rawData.hasOwnProperty('post')) {
-                let postData = rawData.post;
+                const postData = rawData.post;
                 if (postData.hasOwnProperty('postid')) {
                     this.id = parseInt(postData.postid, 10);
                 }
@@ -85,7 +86,7 @@ export class Post extends FetchableObject{
                     this.signature = postData.signature;
                 }
 
-                //TODO handle users
+                // TODO handle users
                 if (postData.hasOwnProperty('userid')) {
                     this.userId = parseInt(postData.userid, 10);
                 }
@@ -108,23 +109,24 @@ export class Post extends FetchableObject{
      * @fulfill {*}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    static async createPost(vbApi: VBApi, threadId: number, message: string, options?: PostCreateOptions) { // && add these options above
+    public static async createPost(
+        vbApi: VBApi, threadId: number, message: string, options?: PostCreateOptions
+    ) { // && add these options above
         options = options || {};
-        options.threadid = threadId || options.threadid || 0; //required
-        options.message = message || options.message || ''; //required
-        options.signature = options.signature === true ? '1' : '0'; //System only handle 1 or 0. defaults to 0
+        options.threadid = threadId || options.threadid || 0; // required
+        options.message = message || options.message || ''; // required
+        options.signature = options.signature === true ? '1' : '0'; // System only handle 1 or 0. defaults to 0
 
-
-        return new Promise(async function (resolve, reject) {
+        return new Promise(async (resolve, reject) => {
             try {
                 const response = await vbApi.callMethod({
                     method: 'newreply_postreply',
                     params: options
                 });
                 const possibleError = VBApi.parseErrorMessage(response);
-                //success is errormessgae 'redirect_postthanks'
-                //error 'threadclosed' if thread is closed. FIXME does not error
-                //reports threadid and postid
+                // success is errormessgae 'redirect_postthanks'
+                // error 'threadclosed' if thread is closed. FIXME does not error
+                // reports threadid and postid
                 if (
                     possibleError === 'redirect_postthanks'
                     && response.hasOwnProperty('show')
@@ -151,20 +153,20 @@ export class Post extends FetchableObject{
      * @fulfill {*}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    static async editPost(vbApi: VBApi, postId: number, message: string, options?: PostEditOptions) {
+    public static async editPost(vbApi: VBApi, postId: number, message: string, options?: PostEditOptions) {
         options = options || {};
-        options.postid = postId || options.postid || 0; //required
-        options.message = message || options.message || ''; //required
-        options.signature = options.signature === true ? '1' : '0'; //System only handle 1 or 0. defaults to 0
+        options.postid = postId || options.postid || 0; // required
+        options.message = message || options.message || ''; // required
+        options.signature = options.signature === true ? '1' : '0'; // System only handle 1 or 0. defaults to 0
 
-        return new Promise(async function (resolve, reject) {
+        return new Promise(async (resolve, reject) => {
             try {
-                let response = await vbApi.callMethod({
+                const response = await vbApi.callMethod({
                     method: 'editpost_updatepost',
                     params: options
                 });
-                let possibleError = VBApi.parseErrorMessage(response);
-                //success is errormessgae 'redirect_editthanks'
+                const possibleError = VBApi.parseErrorMessage(response);
+                // success is errormessgae 'redirect_editthanks'
                 if (possibleError === 'redirect_editthanks') {
                     resolve({postid: options.postid});
                 } else {
@@ -190,24 +192,24 @@ export class Post extends FetchableObject{
      * @fulfill {*}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    static async deletePost(vbApi: VBApi, postId: number, threadId: number, options?: PostDeleteOptions) {
+    public static async deletePost(vbApi: VBApi, postId: number, threadId: number, options?: PostDeleteOptions) {
         options = options || {};
-        options.postid = postId || options.postid || 0; //required
+        options.postid = postId || options.postid || 0; // required
         options.threadid = threadId || options.threadid || 0; // TODO required????
 
-        return new Promise(async function (resolve, reject) {
+        return new Promise(async (resolve, reject) => {
             try {
-                let response = await vbApi.callMethod({
+                const response = await vbApi.callMethod({
                     method: 'editpost_deletepost',
                     params: options
                 });
-                let possibleError = VBApi.parseErrorMessage(response);
-                //unknown response
+                const possibleError = VBApi.parseErrorMessage(response);
+                // unknown response
                 if (
                     possibleError === 'redirect_deletepost'
                     && response.hasOwnProperty('show')
                 ) {
-                    //console.log('response', response);
+                    // console.log('response', response);
                     resolve(response.show);
                 } else {
                     reject(possibleError || response);

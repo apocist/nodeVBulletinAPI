@@ -28,20 +28,25 @@ export interface RawMemberData {
     }
 }
 
-class Member {
+export class Member {
     private rawData: RawMemberData;
 
+    fetched: boolean = false;
+
+    // Info available before full fetch
     id: number;
     username: string;
-    profileUrl: string;
     avatarUrl: string;
-    profilePicUrl: string;
+    title: string;
+    signature: string;
     joinDate: Date;
+    online: boolean;
+
+    profileUrl: string;
+    profilePicUrl: string;
     joinDateUnix: number;
     lastActivityTime: Date;
     lastActivityTimeUnix: number;
-    title: string;
-    signature: string;
     posts: number;
     birthday: string;
     homepage: string;
@@ -49,11 +54,12 @@ class Member {
     noteCount: number;
     canBeFriend: boolean;
     hasIMDetails: boolean;
-    online: boolean;
 
-    constructor(rawData: RawMemberData) {
-        this.rawData = rawData;
-        this.parseData();
+    constructor(rawData?: RawMemberData) {
+        if (rawData) {
+            this.rawData = rawData;
+            this.parseData();
+        }
         this.cleanup();
     };
 
@@ -95,7 +101,7 @@ class Member {
 
                 Object.keys(numberItems).forEach(function (key) {
                     if (memberData.hasOwnProperty(numberItems[key])) {
-                        that[key] = parseInt(memberData[numberItems[key]]);
+                        that[key] = parseInt(memberData[numberItems[key]], 10);
                     }
                 });
 
@@ -134,12 +140,13 @@ class Member {
                 }
 
                 if (that.hasOwnProperty('joinDateUnix')) {
-                    that.joinDate = new Date(that.joinDateUnix  * 1000);
+                    that.joinDate = new Date(that.joinDateUnix * 1000);
                 }
                 if (that.hasOwnProperty('lastActivityTimeUnix')) {
                     that.lastActivityTime = new Date(that.lastActivityTimeUnix * 1000);
                 }
             }
+            that.fetched = true;
         }
     };
 

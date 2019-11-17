@@ -36,6 +36,7 @@ export interface RawPostData {
 
 export class Post {
     private rawData: RawPostData;
+
     id: number;
     threadId: number;
     postTime: number;

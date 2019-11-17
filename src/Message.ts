@@ -1,4 +1,5 @@
 import {VBApi, CallMethodParameters} from './VBApi';
+import {Member} from './Member';
 
 export interface MessageGetOptions extends CallMethodParameters {
     pmid?: number
@@ -48,30 +49,36 @@ export interface RawMessageData {
     }
 }
 
-class Message {
+export class Message {
     private rawData: RawMessageData;
-    private id: number;
-    private folderId: number;
-    private recipients: string;
-    private title: string;
-    private message: string;
-    private messagePlain: string;
-    private messageBBCode: string;
-    status: string;
-    private time: Date;
 
-    private userId: number;
-    private username: string;
-    private user: { joinDate: Date; signature: string; avatarUrl: any; online: boolean; id: number; title: string; username: string };
+    fetched: boolean = false;
+    unread: boolean = false;
+
+    id: number;
+    folderId: number;
+    recipients: string;
+    title: string;
+    message: string;
+    messagePlain: string;
+    messageBBCode: string;
+    status: string;
+    time: Date;
+
+    userId: number;
+    username: string;
+    user: Member;
 
 
     /**
      *
      * @param {RawMessageData} rawData
      */
-    constructor(rawData: RawMessageData) {
-        this.rawData = rawData;
-        this.parseData();
+    constructor(rawData?: RawMessageData) {
+        if (rawData) {
+            this.rawData = rawData;
+            this.parseData();
+        }
         this.cleanup();
     };
 
@@ -85,28 +92,32 @@ class Message {
             const pm = this.rawData.HTML.pm;
             const post = this.rawData.HTML.postbit.post;
 
-            this.id = parseInt(pm.pmid); // number
-            this.folderId = parseInt(pm.folderid);
+            this.id = parseInt(pm.pmid, 10); // number
+            this.folderId = parseInt(pm.folderid, 10);
             this.recipients = pm.recipients; // FIXME need to parse this
             this.title = post.title || pm.title;
             this.message = post.message;
             this.messagePlain = post.message_plain;
             this.messageBBCode = post.message_bbcode;
             this.status = post.statusicon;
-            this.time = new Date(parseInt(post.posttime) * 1000);
+            this.time = new Date(parseInt(post.posttime, 10) * 1000);
 
 
-            this.userId = parseInt(post.userid);
+            this.userId = parseInt(post.userid, 10);
             this.username = pm.fromusername;
-            this.user = {
-                id: parseInt(post.userid),
-                username: post.username,
-                title: post.usertitle,
-                signature: post.signature,
-                avatarUrl: post.avatarurl,
-                online: !!parseInt(post.onlinestatus.onlinestatus),
-                joinDate: new Date(parseInt(post.joindate) * 1000),
-            };
+
+            const member = new Member();
+            member.id = parseInt(post.userid, 10);
+            member.username = post.username;
+            member.avatarUrl = post.avatarurl;
+            member.title = post.usertitle;
+            member.signature = post.signature;
+            member.joinDate = new Date(parseInt(post.joindate, 10) * 1000);
+            member.online = !!parseInt(post.onlinestatus.onlinestatus, 10);
+            this.user = member;
+
+            this.unread = false;
+            this.fetched = true;
         }
     };
 
@@ -140,7 +151,7 @@ class Message {
                     message = new Message(response.response);
                 }
 
-                if(message == null){
+                if (message == null) {
                     reject();
                 }
                 resolve(message);
@@ -162,7 +173,7 @@ class Message {
      * @fulfill {void}
      * @reject {string} - Error Reason. Expects: (TODO list common errors here)
      */
-    static async create(vbApi: VBApi, username:string, title: string, message: string, options?: MessageCreateOptions) {
+    static async create(vbApi: VBApi, username: string, title: string, message: string, options?: MessageCreateOptions) {
         options = options || {};
         options.recipients = username || options.recipients || ''; //required
         options.title = title || options.title || ''; //required

@@ -22,6 +22,7 @@ export interface RawForumData {
 
 class Forum {
     private rawData: RawForumData;
+
     id: number;
     title: string;
     description: string;

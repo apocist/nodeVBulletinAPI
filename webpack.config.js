@@ -2,7 +2,7 @@ const path = require("path");
 
 module.exports = {
     mode: 'development',
-    entry: "./src/index.ts",
+    entry: "./src/VBApi.ts",
 
     output: {
         path: path.join(__dirname, "dist"),
@@ -16,12 +16,20 @@ module.exports = {
 
     module: {
         rules: [
-            {
+            /*{
                 test: /\.ts$/,
                 include: path.join(__dirname, "src"),
                 loader: "ts-loader",
                 options: {
-                    configFile: "tsconfig.commonjs.json"
+                    configFile: "tsconfig.umd.json"
+                }
+            },*/
+            {
+                test: /\.tsx?$/,
+                include: path.join(__dirname, "src"),
+                loader: 'awesome-typescript-loader',
+                options: {
+                    configFileName: "tsconfig.umd.json"
                 }
             }
         ]

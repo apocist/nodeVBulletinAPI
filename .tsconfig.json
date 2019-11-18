@@ -6,9 +6,15 @@
     "sourceMap": true,
     "removeComments": true,
     "preserveConstEnums": true,
-    "declaration": true
+    "declaration": true,
+    "baseUrl": ".",
+    "lib": [],
+    "paths": {
+      "*": [
+        "node_modules/*"
+      ]
+    }
   },
-  "lib": [],
   "include": [
     "src/**/*.ts"
   ]

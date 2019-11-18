@@ -6,8 +6,16 @@ import nanoid from 'nanoid/non-secure';
 import qs from 'qs';
 // @ts-ignore (esModuleInterop: true is used)
 import Url from 'url-parse';
-
 import {Post, PostCreateOptions, PostDeleteOptions, PostEditOptions} from './Post'
+
+export * from './FetchableObject';
+export * from './Forum';
+export * from './Inbox';
+export * from './Member';
+export * from './Message';
+export * from './Post';
+export * from './Thread';
+
 const fakeVersion = '2.0.0-beta.0';
 
 // import {Forum} from './Forum'

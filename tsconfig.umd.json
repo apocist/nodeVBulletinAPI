@@ -3,10 +3,10 @@
   "compilerOptions": {
     "module": "umd",
     "target": "es6",
-    "outDir": "dist/umd"
-  },
-  "lib": [
-    "es2018",
-    "dom"
-  ]
+    "outDir": "dist/umd",
+    "lib": [
+      "es2018",
+      "dom"
+    ]
+  }
 }

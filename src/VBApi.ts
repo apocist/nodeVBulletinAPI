@@ -1,10 +1,11 @@
 import axios, {AxiosRequestConfig} from 'axios';
 import * as md5 from 'js-md5';
 import * as _ from 'lodash';
+// @ts-ignore (esModuleInterop: true is used)
+import nanoid from 'nanoid/non-secure';
 import qs from 'qs';
 // @ts-ignore (esModuleInterop: true is used)
 import Url from 'url-parse';
-import * as uuid from 'uuid'; // FIXME need replace with browser friendly
 
 import {Post, PostCreateOptions, PostDeleteOptions, PostEditOptions} from './Post'
 const fakeVersion = '2.0.0-beta.0';
@@ -91,7 +92,7 @@ export class VBApi {
             clientVersion: fakeVersion,
             platformName: platformName || '',
             platformVersion: platformVersion || '',
-            uniqueId: md5.hex('nodeVBulletinAPI' + fakeVersion + platformName + platformVersion + uuid.v1()),
+            uniqueId: md5.hex('nodeVBulletinAPI' + fakeVersion + platformName + platformVersion + nanoid())
         };
 
         this.userSessionVars = {

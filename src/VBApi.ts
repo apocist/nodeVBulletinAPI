@@ -2,7 +2,7 @@ import axios, {AxiosRequestConfig} from 'axios';
 import * as md5 from 'js-md5';
 import * as _ from 'lodash';
 import qs from 'qs';
-import * as url from 'url'; // FIXME need replace with browser friendly
+import * as Url from 'url-parse';
 import * as uuid from 'uuid'; // FIXME need replace with browser friendly
 
 import {Post, PostCreateOptions, PostDeleteOptions, PostEditOptions} from './Post'
@@ -80,7 +80,8 @@ export class VBApi {
 
     constructor(apiUrl: string, apiKey: string, platformName: string, platformVersion: string) {
         this.initialized = false;
-        const urlParts = url.parse(apiUrl);
+        //  urlParts = url.parse(apiUrl);
+        const urlParts = new Url(apiUrl);
 
         this.connectionVars = {
             baseUrl: `${urlParts.protocol}//${urlParts.hostname}/`,

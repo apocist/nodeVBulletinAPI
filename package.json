@@ -38,11 +38,13 @@
     "js-md5": "^0.7.3",
     "lodash": "^4.17.15",
     "qs": "^6.9.1",
+    "url-parse": "^1.4.7",
     "uuid": "^3.3.2"
   },
   "devDependencies": {
     "@types/js-md5": "^0.4.2",
     "@types/lodash": "^4.14.148",
+    "@types/url-parse": "^1.4.3",
     "@types/uuid": "^3.4.6",
     "concurrently": "^5.0.0",
     "ts-loader": "^6.2.1",
